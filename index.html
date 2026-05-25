@@ -68,8 +68,6 @@
   .mobile-controls button:active{background:var(--border);transform:scale(.92)}
   .mc-up{grid-column:2;grid-row:1}.mc-nw{grid-column:1;grid-row:1}.mc-ne{grid-column:3;grid-row:1}
   .mc-sw{grid-column:1;grid-row:2}.mc-down{grid-column:2;grid-row:2}.mc-se{grid-column:3;grid-row:2}
-
-  /* Оверлеи */
   .overlay{position:absolute;inset:0;background:var(--overlay);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;border-radius:16px;opacity:0;pointer-events:none;transition:opacity .35s;padding:1.5em}
   .overlay.active{opacity:1;pointer-events:all}
   .overlay h2{font-size:1.6rem;margin-bottom:.3em;background:linear-gradient(135deg,var(--accent),#fc4a1a);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
@@ -77,8 +75,6 @@
   #nickname-form{display:none;align-items:center;gap:.4em;margin-bottom:.8em}
   #nickname-input{padding:.35em .5em;border-radius:6px;border:2px solid var(--border);background:var(--panel);color:var(--text);font-size:.9rem;width:140px;text-align:center;outline:none;touch-action:auto}
   #nickname-input:focus{border-color:var(--accent)}
-
-  /* Таблица лидеров — единый стиль для обоих оверлеев */
   .lb-container{width:280px;max-height:220px;overflow-y:auto;background:var(--panel);border-radius:8px;padding:.4em;font-size:.8rem;margin-bottom:.7em;overscroll-behavior:contain}
   .lb-tabs{display:flex;gap:4px;margin-bottom:.4em}
   .lb-tab{flex:1;padding:.3em;border-radius:6px;border:2px solid var(--border);background:transparent;color:var(--text-sec);font-size:.7rem;font-weight:bold;cursor:pointer;text-align:center;transition:all .2s}
@@ -89,7 +85,6 @@
   .lb-row.me{background:rgba(247,183,51,.15);border:1px solid var(--accent)}
   .lb-loading{text-align:center;color:var(--text-sec);padding:.8em}
   .lb-empty{text-align:center;color:var(--text-sec);padding:.8em;font-style:italic}
-
   @media(hover:none) and (pointer:coarse){.mobile-controls{display:grid}}
   @media(max-width:600px){h1{font-size:1.4rem;margin:.15em 0}.header{gap:.3em;margin-bottom:.2em}.score-box{padding:.15em .4em;min-width:45px}.score-box .value{font-size:1rem}.mobile-controls{--btn-size:40px;gap:2px;margin-top:.2em}}
   @media(max-height:700px){h1{font-size:1.3rem;margin:.1em 0}.header{margin-bottom:.15em}.mobile-controls{--btn-size:36px;gap:2px;margin-top:.1em}}
@@ -105,7 +100,6 @@
   </select>
   <button class="btn" id="newGameBtn">Новая</button>
   <button class="icon-btn" id="shareHeaderBtn" aria-label="Поделиться">📤</button>
-  <!-- Кнопка чемпионов -->
   <button class="icon-btn" id="trophyBtn" aria-label="Чемпионы" title="Таблица лидеров">🏆</button>
   <div class="score-box"><div class="label">Рекорд</div><div class="value" id="best">0</div></div>
   <button class="icon-btn active" id="magnetToggle" aria-label="Магнит">🧲</button>
@@ -117,8 +111,6 @@
   <button class="mc-nw" data-dir="5">↖</button><button class="mc-up" data-dir="0">↑</button><button class="mc-ne" data-dir="1">↗</button>
   <button class="mc-sw" data-dir="4">↙</button><button class="mc-down" data-dir="3">↓</button><button class="mc-se" data-dir="2">↘</button>
 </div>
-
-<!-- Оверлей Game Over -->
 <div class="overlay" id="overlay">
   <h2 id="overlayTitle">Игра окончена!</h2>
   <p id="overlayMsg">Попробуйте ещё раз</p>
@@ -127,8 +119,6 @@
   <button class="btn btn-share" id="overlayShareBtn">📤 Поделиться результатом</button>
   <button class="btn" id="overlayBtn">Заново</button>
 </div>
-
-<!-- Оверлей Чемпионов (отдельный) -->
 <div class="overlay" id="trophyOverlay">
   <h2>🏆 Чемпионы</h2>
   <div class="lb-tabs">
@@ -152,8 +142,16 @@ function getTgUser(){try{const u=window.Telegram?.WebApp?.initDataUnsafe?.user;i
 function getTgUserId(){const u=getTgUser();return u?u.id:''}
 function getDefaultNick(){const u=getTgUser();return u?u.name:'Player'}
 
+// ИСПРАВЛЕНО: Сохранение после КАЖДОГО хода, не только Game Over
+// Использует debounce чтобы не спамить базу при быстрых каскадах
+let saveTimeout=null;
+function scheduleAutoSave(){
+  if(saveTimeout)clearTimeout(saveTimeout);
+  saveTimeout=setTimeout(()=>{autoSaveScore(score,CURRENT_RADIUS)},1000);
+}
+
 async function autoSaveScore(sc,radius){
-  const uid=getTgUserId();if(!supabaseClient||!uid)return;const nick=getDefaultNick();
+  const uid=getTgUserId();if(!supabaseClient||!uid||sc<=0)return;const nick=getDefaultNick();
   try{const{data:ex}=await supabaseClient.from('leaderboard').select('id,score').eq('user_id',uid).eq('radius',radius).limit(1);
   if(ex&&ex.length>0){if(sc>ex[0].score){await supabaseClient.from('leaderboard').update({score:sc,nick}).eq('id',ex[0].id);console.log('[DB] ✅ Updated',sc)}}
   else{await supabaseClient.from('leaderboard').insert({nick,score:sc,radius,user_id:uid});console.log('[DB] ✅ Inserted',sc)}}catch(e){console.error('[DB] ❌ AutoSave:',e.message)}
@@ -161,36 +159,25 @@ async function autoSaveScore(sc,radius){
 async function saveScoreWithNick(nick,sc,radius){
   const uid=getTgUserId();if(!supabaseClient||!uid||!nick)return;
   try{const{data:ex}=await supabaseClient.from('leaderboard').select('id').eq('user_id',uid).eq('radius',radius).limit(1);
-  if(ex&&ex.length>0){await supabaseClient.from('leaderboard').update({nick:nick.trim(),score:sc}).eq('id',ex[0].id)}
+  if(ex&&ex.length>0){await supabaseClient.from('leaderboard').update({nick:nick.trim(),score:Math.max(sc,ex[0]?.score||0)}).eq('id',ex[0].id)}
   else{await supabaseClient.from('leaderboard').insert({nick:nick.trim(),score:sc,radius,user_id:uid})}
   console.log('[DB] ✅ Nick saved:',nick)}catch(e){console.error('[DB] ❌ SaveNick:',e.message)}
 }
 async function saveShareEvent(rt){const uid=getTgUserId();if(!supabaseClient||!uid)return;try{await supabaseClient.from('share_events').insert({sender_id:uid,recipient_type:rt||null,score,radius:CURRENT_RADIUS})}catch(e){}}
-
-// ИСПРАВЛЕНО: Загрузка лидерборда с фильтром по радиусу + общий
 async function loadLeaderboard(radius){
   if(!supabaseClient)return null;
-  try{
-    let query=supabaseClient.from('leaderboard').select('nick,score,radius,user_id').order('score',{ascending:false}).limit(15);
-    if(radius)query=query.eq('radius',radius);
-    const{data,error}=await query;
-    if(error){console.error('[DB] LB load error:',error.message);return null}
-    console.log('[DB] ✅ LB loaded:',data?data.length:0,'rows, radius:',radius||'all');
-    return data;
-  }catch(e){console.error('[DB] LB exception:',e);return null}
+  try{let query=supabaseClient.from('leaderboard').select('nick,score,radius,user_id').order('score',{ascending:false}).limit(15);
+  if(radius)query=query.eq('radius',radius);
+  const{data,error}=await query;if(error){console.error('[DB] LB error:',error.message);return null}
+  console.log('[DB] ✅ LB loaded:',data?data.length:0,'rows');return data}catch(e){return null}
 }
-
 async function getPersonalBest(){const uid=getTgUserId();if(!supabaseClient||!uid)return null;try{const{data,error}=await supabaseClient.from('leaderboard').select('score').eq('user_id',uid).eq('radius',CURRENT_RADIUS).order('score',{ascending:false}).limit(1);return(error||!data||!data.length)?null:data[0].score}catch(e){return null}}
 
-// === РЕНДЕРИНГ ЛИДЕРБОРДА ===
 function renderLBRows(rows,targetEl){
   const myId=getTgUserId();
-  if(!rows||!rows.length){targetEl.innerHTML='<div class="lb-empty">Пока нет результатов.<br>Сыграйте до конца!</div>';return}
+  if(!rows||!rows.length){targetEl.innerHTML='<div class="lb-empty">Пока нет результатов.<br>Начните играть!</div>';return}
   let h='<div class="lb-header"><span># Игрок</span><span>Поле / Счёт</span></div>';
-  rows.forEach((e,i)=>{
-    const isMe=myId&&e.user_id===myId;
-    h+='<div class="lb-row'+(i===0?' top1':'')+(isMe?' me':'')+'"><span>'+(i+1)+'. '+e.nick+'</span><span>'+e.radius+' | '+e.score+'</span></div>';
-  });
+  rows.forEach((e,i)=>{const isMe=myId&&e.user_id===myId;h+='<div class="lb-row'+(i===0?' top1':'')+(isMe?' me':'')+'"><span>'+(i+1)+'. '+e.nick+'</span><span>'+e.radius+' | '+e.score+'</span></div>'});
   targetEl.innerHTML=h;
 }
 
@@ -270,7 +257,7 @@ function loadSessionForRadius(r){
   loadBest();document.getElementById('overlay').classList.remove('active');
   if(gameOver&&!won)setTimeout(()=>showOverlay('Игра окончена','Финальный счёт: '+score,false),300);
   else if(won)setTimeout(()=>showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true),300);
-  return true}catch(e){console.warn('Load failed r='+r,e);return false}
+  return true}catch(e){return false}
 }
 function clearSessionForRadius(r){localStorage.removeItem(sessionKey(r))}
 function newGame(){clearSessionForRadius(CURRENT_RADIUS);clearLayers();nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;document.getElementById('score').textContent='0';document.getElementById('overlay').classList.remove('active');document.getElementById('nickname-form').style.display='none';buildGrid(parseInt(radiusSelect.value));for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();saveSession();haptic('light')}
@@ -281,18 +268,34 @@ function addTile(q,r,value){const id=nextTileId++;const el=document.createElemen
 function addRandomTile(){const empty=emptyCells();if(!empty.length)return;const cell=empty[Math.floor(Math.random()*empty.length)];addTile(cell.q,cell.r,Math.random()<.9?2:4)}
 function getLines(dir){const{dq,dr}=DIRECTIONS[dir],lines={};for(const c of GRID){let lid;if(dir===0||dir===3)lid='q='+c.q;else if(dir===1||dir===4)lid='s='+(c.q+c.r);else lid='r='+c.r;if(!lines[lid])lines[lid]=[];lines[lid].push(c)}for(const k in lines)lines[k].sort((a,b)=>(a.q*dq+a.r*dr)-(b.q*dq+b.r*dr));return Object.values(lines)}
 function canStillPlay(){if(emptyCells().length>0)return true;const tl=Array.from(tiles.values());for(const t of tl)for(const d of DIRECTIONS){const nq=t.q+d.dq,nr=t.r+d.dr;if(!inGrid(nq,nr))continue;for(const o of tl)if(o.id!==t.id&&o.q===nq&&o.r===nr&&o.value===t.value)return true}return false}
-function finishTurn(){saveSession();if(!canStillPlay()){gameOver=true;SFX.lose();haptic('error');saveBestLocal();autoSaveScore(score,CURRENT_RADIUS);saveLBLocal(getDefaultNick(),score);saveSession();setTimeout(()=>showOverlay('Игра окончена','Финальный счёт: '+score,false),350)}isAnimating=false}
+
+// ИСПРАВЛЕНО: finishTurn тоже сохраняет, но основной сейв теперь через scheduleAutoSave
+function finishTurn(){
+  saveSession();
+  // Финальное сохранение без задержки при Game Over
+  if(score>0)autoSaveScore(score,CURRENT_RADIUS);
+  if(!canStillPlay()){
+    gameOver=true;SFX.lose();haptic('error');saveBestLocal();
+    saveLBLocal(getDefaultNick(),score);
+    saveSession();setTimeout(()=>showOverlay('Игра окончена','Финальный счёт: '+score,false),350);
+  }
+  isAnimating=false;
+}
+
 function move(dir){
   if(gameOver||isAnimating)return;const{dq,dr}=DIRECTIONS[dir],lines=getLines(dir);
   const vBoard=new Map();for(const t of tiles.values())vBoard.set(key(t.q,t.r),t.id);
   const merges=[],mergedInto=new Set();let moved=false;
   for(const line of lines){let lastId=null;for(const cell of line){const k=key(cell.q,cell.r),tid=vBoard.get(k);if(tid===undefined)continue;const tile=tiles.get(tid);let tq=cell.q,tr=cell.r,mergeWith=null;while(true){const nq=tq+dq,nr=tr+dr;if(!inGrid(nq,nr))break;const nk=key(nq,nr);if(!vBoard.has(nk)){tq=nq;tr=nr}else{const bid=vBoard.get(nk),b=tiles.get(bid),bv=mergedInto.has(bid)?merges.find(m=>m.survivorId===bid)?.newValue||b.value:b.value;if(bv===tile.value&&!mergedInto.has(bid)&&bid!==lastId){mergeWith=bid;tq=nq;tr=nr}break}}if(mergeWith!==null){merges.push({survivorId:mergeWith,consumedId:tid,newValue:tile.value*2});mergedInto.add(mergeWith);vBoard.delete(k);tile.q=tq;tile.r=tr;positionEl(tile.el,tq,tr);moved=true;lastId=mergeWith}else{if(tq!==cell.q||tr!==cell.r)moved=true;vBoard.delete(k);vBoard.set(key(tq,tr),tid);tile.q=tq;tile.r=tr;positionEl(tile.el,tq,tr);lastId=tid}}}
   if(!moved&&merges.length===0)return;isAnimating=true;SFX.move();haptic(merges.length>0?'heavy':'light');
-  setTimeout(()=>{for(const mg of merges){const s=tiles.get(mg.survivorId),c=tiles.get(mg.consumedId);if(c){c.el.remove();tiles.delete(mg.consumedId)}s.value=mg.newValue;s.el.textContent=mg.newValue;s.el.dataset.value=mg.newValue;s.el.classList.remove('merged-tile','big-flash');void s.el.offsetWidth;s.el.classList.add('merged-tile');SFX.merge(mg.newValue);if(mg.newValue>=256){s.el.classList.add('big-flash');setTimeout(()=>s.el.classList.remove('big-flash'),600);haptic('rigid')}score+=mg.newValue}document.getElementById('score').textContent=score;saveBestLocal();for(const t of tiles.values())if(t.value>=2048&&!won){won=true;SFX.win();haptic('success');showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true);saveSession()}if(magnetEnabled){cascadeNeighborMerges()}else{addRandomTile();finishTurn()}},190);
+  setTimeout(()=>{for(const mg of merges){const s=tiles.get(mg.survivorId),c=tiles.get(mg.consumedId);if(c){c.el.remove();tiles.delete(mg.consumedId)}s.value=mg.newValue;s.el.textContent=mg.newValue;s.el.dataset.value=mg.newValue;s.el.classList.remove('merged-tile','big-flash');void s.el.offsetWidth;s.el.classList.add('merged-tile');SFX.merge(mg.newValue);if(mg.newValue>=256){s.el.classList.add('big-flash');setTimeout(()=>s.el.classList.remove('big-flash'),600);haptic('rigid')}score+=mg.newValue}document.getElementById('score').textContent=score;saveBestLocal();
+  // ИСПРАВЛЕНО: Планируем сохранение после каждого хода
+  scheduleAutoSave();
+  for(const t of tiles.values())if(t.value>=2048&&!won){won=true;SFX.win();haptic('success');showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true);saveSession()}if(magnetEnabled){cascadeNeighborMerges()}else{addRandomTile();finishTurn()}},190);
 }
 function findNeighborPairs(){const tl=Array.from(tiles.values()),used=new Set(),pairs=[];tl.sort((a,b)=>b.value-a.value);for(const t of tl){if(used.has(t.id))continue;for(const d of DIRECTIONS){const nq=t.q+d.dq,nr=t.r+d.dr;if(!inGrid(nq,nr))continue;const nb=tl.find(o=>o.id!==t.id&&!used.has(o.id)&&o.q===nq&&o.r===nr&&o.value===t.value);if(nb){pairs.push([t,nb]);used.add(t.id);used.add(nb.id);break}}}return pairs}
 function spawnSparks(q,r,n=6){const p=hexToPixel(q,r);for(let i=0;i<n;i++){const s=document.createElement('div');s.className='spark';const a=(i/n)*Math.PI*2+Math.random()*.5,dist=30+Math.random()*20;s.style.left=(cx+p.x)+'px';s.style.top=(cy+p.y)+'px';s.style.setProperty('--dx',Math.cos(a)*dist+'px');s.style.setProperty('--dy',Math.sin(a)*dist+'px');tilesLayer.appendChild(s);setTimeout(()=>s.remove(),600)}}
-function performNeighborMerges(pairs){SFX.cascade();haptic('medium');for(const[t1,t2]of pairs){t2.el.classList.add('consumed-neighbor');setTimeout(()=>{t2.el.remove();tiles.delete(t2.id)},250);const nv=t1.value*2;t1.value=nv;t1.el.textContent=nv;t1.el.dataset.value=nv;t1.el.classList.remove('neighbor-merged','big-flash');void t1.el.offsetWidth;t1.el.classList.add('neighbor-merged');if(nv>=256){t1.el.classList.add('big-flash');setTimeout(()=>t1.el.classList.remove('big-flash'),600)}spawnSparks(t1.q,t1.r,8);score+=nv}document.getElementById('score').textContent=score;saveBestLocal();for(const t of tiles.values())if(t.value>=2048&&!won){won=true;SFX.win();haptic('success');showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true);saveSession()}}
+function performNeighborMerges(pairs){SFX.cascade();haptic('medium');for(const[t1,t2]of pairs){t2.el.classList.add('consumed-neighbor');setTimeout(()=>{t2.el.remove();tiles.delete(t2.id)},250);const nv=t1.value*2;t1.value=nv;t1.el.textContent=nv;t1.el.dataset.value=nv;t1.el.classList.remove('neighbor-merged','big-flash');void t1.el.offsetWidth;t1.el.classList.add('neighbor-merged');if(nv>=256){t1.el.classList.add('big-flash');setTimeout(()=>t1.el.classList.remove('big-flash'),600)}spawnSparks(t1.q,t1.r,8);score+=nv}document.getElementById('score').textContent=score;saveBestLocal();scheduleAutoSave();for(const t of tiles.values())if(t.value>=2048&&!won){won=true;SFX.win();haptic('success');showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true);saveSession()}}
 function cascadeNeighborMerges(){const pairs=findNeighborPairs();if(pairs.length===0){addRandomTile();finishTurn();return}performNeighborMerges(pairs);setTimeout(cascadeNeighborMerges,300)}
 
 // === ПОДЕЛИТЬСЯ ===
@@ -318,12 +321,9 @@ async function showOverlay(title,msg,keep){
   const form=document.getElementById('nickname-form'),input=document.getElementById('nickname-input'),btn=document.getElementById('overlayBtn');
   const shareBtn=document.getElementById('overlayShareBtn');
   const lbEl=document.getElementById('gameOverLb');
-  
-  // Загружаем лидерборд текущего радиуса
   lbEl.innerHTML='<div class="lb-loading">Загрузка...</div>';
   const rows=await loadLeaderboard(CURRENT_RADIUS);
   if(rows){renderLBRows(rows,lbEl)}else{renderLBRows(loadLBLocal(),lbEl)}
-  
   if(keep){form.style.display='none';shareBtn.style.display='';btn.textContent='Продолжить';btn.onclick=()=>document.getElementById('overlay').classList.remove('active')}
   else{shareBtn.style.display='';btn.textContent='Заново';btn.onclick=newGame;if(score>0){form.style.display='flex';input.value='';input.placeholder=getDefaultNick()+' (или свой)'}else form.style.display='none'}
   document.getElementById('overlay').classList.add('active');
@@ -331,36 +331,21 @@ async function showOverlay(title,msg,keep){
 document.getElementById('submit-nick').addEventListener('click',async()=>{const n=document.getElementById('nickname-input').value.trim();if(n){await saveScoreWithNick(n,score,CURRENT_RADIUS);saveLBLocal(n,score);submittedNick=true;document.getElementById('nickname-form').style.display='none';const rows=await loadLeaderboard(CURRENT_RADIUS);if(rows)renderLBRows(rows,document.getElementById('gameOverLb'));haptic('success')}});
 document.getElementById('nickname-input').addEventListener('keypress',e=>{if(e.key==='Enter')document.getElementById('submit-nick').click()});
 
-// === ОВЕРЛЕЙ ЧЕМПИОНОВ (НОВЫЙ) ===
+// === ОВЕРЛЕЙ ЧЕМПИОНОВ ===
 let trophyTab='current';
 const trophyOverlay=document.getElementById('trophyOverlay');
 const trophyLb=document.getElementById('trophyLb');
 const tabCurrent=document.getElementById('tabCurrent');
 const tabAll=document.getElementById('tabAll');
-
-async function openTrophy(){
-  trophyOverlay.classList.add('active');
-  trophyTab='current';
-  tabCurrent.classList.add('active');tabAll.classList.remove('active');
-  await loadTrophyLb();
-  haptic('light');
-}
-
+async function openTrophy(){trophyOverlay.classList.add('active');trophyTab='current';tabCurrent.classList.add('active');tabAll.classList.remove('active');await loadTrophyLb();haptic('light')}
 function closeTrophy(){trophyOverlay.classList.remove('active')}
-
 async function loadTrophyLb(){
   trophyLb.innerHTML='<div class="lb-loading">Загрузка...</div>';
   const radius=trophyTab==='current'?CURRENT_RADIUS:null;
   const rows=await loadLeaderboard(radius);
   if(rows){renderLBRows(rows,trophyLb)}
-  else{
-    // Fallback на локальные данные
-    const local=loadLBLocal();
-    const filtered=trophyTab==='current'?local.filter(e=>e.radius===CURRENT_RADIUS):local;
-    renderLBRows(filtered,trophyLb);
-  }
+  else{const local=loadLBLocal();const filtered=trophyTab==='current'?local.filter(e=>e.radius===CURRENT_RADIUS):local;renderLBRows(filtered,trophyLb)}
 }
-
 tabCurrent.onclick=async()=>{trophyTab='current';tabCurrent.classList.add('active');tabAll.classList.remove('active');await loadTrophyLb()};
 tabAll.onclick=async()=>{trophyTab='all';tabAll.classList.add('active');tabCurrent.classList.remove('active');await loadTrophyLb()};
 document.getElementById('trophyBtn').onclick=openTrophy;
