@@ -100,7 +100,7 @@
   </select>
   <button class="btn" id="newGameBtn">Новая</button>
   <button class="icon-btn" id="shareHeaderBtn" aria-label="Поделиться">📤</button>
-  <button class="icon-btn" id="trophyBtn" aria-label="Чемпионы" title="Таблица лидеров">🏆</button>
+  <button class="icon-btn" id="trophyBtn" aria-label="Чемпионы">🏆</button>
   <div class="score-box"><div class="label">Рекорд</div><div class="value" id="best">0</div></div>
   <button class="icon-btn active" id="magnetToggle" aria-label="Магнит">🧲</button>
   <button class="icon-btn" id="soundToggle" aria-label="Звук">🔊</button>
@@ -142,42 +142,107 @@ function getTgUser(){try{const u=window.Telegram?.WebApp?.initDataUnsafe?.user;i
 function getTgUserId(){const u=getTgUser();return u?u.id:''}
 function getDefaultNick(){const u=getTgUser();return u?u.name:'Player'}
 
-// ИСПРАВЛЕНО: Сохранение после КАЖДОГО хода, не только Game Over
-// Использует debounce чтобы не спамить базу при быстрых каскадах
+// ИСПРАВЛЕНО: Всегда INSERT новой записи при Game Over
+// + debounce сохранение во время игры (только если счёт выше личного лучшего в базе)
 let saveTimeout=null;
+let lastSavedScore=0;
+
 function scheduleAutoSave(){
   if(saveTimeout)clearTimeout(saveTimeout);
-  saveTimeout=setTimeout(()=>{autoSaveScore(score,CURRENT_RADIUS)},1000);
+  saveTimeout=setTimeout(()=>autoSaveDuringGame(),1500);
 }
 
-async function autoSaveScore(sc,radius){
-  const uid=getTgUserId();if(!supabaseClient||!uid||sc<=0)return;const nick=getDefaultNick();
-  try{const{data:ex}=await supabaseClient.from('leaderboard').select('id,score').eq('user_id',uid).eq('radius',radius).limit(1);
-  if(ex&&ex.length>0){if(sc>ex[0].score){await supabaseClient.from('leaderboard').update({score:sc,nick}).eq('id',ex[0].id);console.log('[DB] ✅ Updated',sc)}}
-  else{await supabaseClient.from('leaderboard').insert({nick,score:sc,radius,user_id:uid});console.log('[DB] ✅ Inserted',sc)}}catch(e){console.error('[DB] ❌ AutoSave:',e.message)}
+// Сохранение ВО ВРЕМЯ игры: только если превзошёл свой предыдущий лучший
+async function autoSaveDuringGame(){
+  const uid=getTgUserId();if(!supabaseClient||!uid||score<=0||score<=lastSavedScore)return;
+  lastSavedScore=score;
+  try{
+    const{data:ex}=await supabaseClient.from('leaderboard')
+      .select('id,score').eq('user_id',uid).eq('radius',CURRENT_RADIUS)
+      .order('score',{ascending:false}).limit(1);
+    if(ex&&ex.length>0&&score>ex[0].score){
+      await supabaseClient.from('leaderboard').update({score,nick:getDefaultNick()}).eq('id',ex[0].id);
+      console.log('[DB] ✅ Live updated',score);
+    }else if(!ex||!ex.length){
+      await supabaseClient.from('leaderboard').insert({nick:getDefaultNick(),score,radius:CURRENT_RADIUS,user_id:uid});
+      console.log('[DB] ✅ Live inserted',score);
+    }
+  }catch(e){console.error('[DB] ❌ LiveSave:',e.message)}
 }
+
+// Сохранение при GAME OVER: всегда новая запись (для топ-10)
+async function saveGameOverScore(sc,radius){
+  const uid=getTgUserId();if(!supabaseClient||!uid||sc<=0)return;
+  const nick=getDefaultNick();
+  try{
+    // Проверяем есть ли уже запись с таким же или большим счётом от этого игрока на этом поле
+    const{data:ex}=await supabaseClient.from('leaderboard')
+      .select('id,score').eq('user_id',uid).eq('radius',radius)
+      .gte('score',sc).limit(1);
+    if(ex&&ex.length>0){
+      // Уже есть результат >= текущего, обновляем его
+      await supabaseClient.from('leaderboard').update({score:sc,nick}).eq('id',ex[0].id);
+      console.log('[DB] ✅ GameOver updated existing',sc);
+    }else{
+      // Новая запись в топ
+      await supabaseClient.from('leaderboard').insert({nick,score:sc,radius,user_id:uid});
+      console.log('[DB] ✅ GameOver new entry',sc);
+    }
+    lastSavedScore=sc;
+  }catch(e){console.error('[DB] ❌ GameOverSave:',e.message)}
+}
+
 async function saveScoreWithNick(nick,sc,radius){
   const uid=getTgUserId();if(!supabaseClient||!uid||!nick)return;
-  try{const{data:ex}=await supabaseClient.from('leaderboard').select('id').eq('user_id',uid).eq('radius',radius).limit(1);
-  if(ex&&ex.length>0){await supabaseClient.from('leaderboard').update({nick:nick.trim(),score:Math.max(sc,ex[0]?.score||0)}).eq('id',ex[0].id)}
-  else{await supabaseClient.from('leaderboard').insert({nick:nick.trim(),score:sc,radius,user_id:uid})}
-  console.log('[DB] ✅ Nick saved:',nick)}catch(e){console.error('[DB] ❌ SaveNick:',e.message)}
+  try{
+    const{data:ex}=await supabaseClient.from('leaderboard')
+      .select('id').eq('user_id',uid).eq('radius',radius)
+      .order('score',{ascending:false}).limit(1);
+    if(ex&&ex.length>0){
+      await supabaseClient.from('leaderboard').update({nick:nick.trim(),score:Math.max(sc,0)}).eq('id',ex[0].id);
+    }else{
+      await supabaseClient.from('leaderboard').insert({nick:nick.trim(),score:sc,radius,user_id:uid});
+    }
+    console.log('[DB] ✅ Nick saved:',nick);
+  }catch(e){console.error('[DB] ❌ SaveNick:',e.message)}
 }
+
 async function saveShareEvent(rt){const uid=getTgUserId();if(!supabaseClient||!uid)return;try{await supabaseClient.from('share_events').insert({sender_id:uid,recipient_type:rt||null,score,radius:CURRENT_RADIUS})}catch(e){}}
+
+// ТОП-10 на каждое поле
 async function loadLeaderboard(radius){
   if(!supabaseClient)return null;
-  try{let query=supabaseClient.from('leaderboard').select('nick,score,radius,user_id').order('score',{ascending:false}).limit(15);
-  if(radius)query=query.eq('radius',radius);
-  const{data,error}=await query;if(error){console.error('[DB] LB error:',error.message);return null}
-  console.log('[DB] ✅ LB loaded:',data?data.length:0,'rows');return data}catch(e){return null}
+  try{
+    let query=supabaseClient.from('leaderboard')
+      .select('nick,score,radius,user_id')
+      .order('score',{ascending:false})
+      .limit(10);
+    if(radius)query=query.eq('radius',radius);
+    const{data,error}=await query;
+    if(error){console.error('[DB] LB error:',error.message);return null}
+    console.log('[DB] ✅ LB loaded:',data?data.length:0,'rows, radius:',radius||'all');
+    return data;
+  }catch(e){return null}
 }
-async function getPersonalBest(){const uid=getTgUserId();if(!supabaseClient||!uid)return null;try{const{data,error}=await supabaseClient.from('leaderboard').select('score').eq('user_id',uid).eq('radius',CURRENT_RADIUS).order('score',{ascending:false}).limit(1);return(error||!data||!data.length)?null:data[0].score}catch(e){return null}}
+
+async function getPersonalBest(){
+  const uid=getTgUserId();if(!supabaseClient||!uid)return null;
+  try{
+    const{data,error}=await supabaseClient.from('leaderboard')
+      .select('score').eq('user_id',uid).eq('radius',CURRENT_RADIUS)
+      .order('score',{ascending:false}).limit(1);
+    return(error||!data||!data.length)?null:data[0].score;
+  }catch(e){return null}
+}
 
 function renderLBRows(rows,targetEl){
   const myId=getTgUserId();
   if(!rows||!rows.length){targetEl.innerHTML='<div class="lb-empty">Пока нет результатов.<br>Начните играть!</div>';return}
   let h='<div class="lb-header"><span># Игрок</span><span>Поле / Счёт</span></div>';
-  rows.forEach((e,i)=>{const isMe=myId&&e.user_id===myId;h+='<div class="lb-row'+(i===0?' top1':'')+(isMe?' me':'')+'"><span>'+(i+1)+'. '+e.nick+'</span><span>'+e.radius+' | '+e.score+'</span></div>'});
+  rows.forEach((e,i)=>{
+    const isMe=myId&&e.user_id===myId;
+    h+='<div class="lb-row'+(i===0?' top1':'')+(isMe?' me':'')+'"><span>'+(i+1)+'. '+e.nick+'</span><span>'+e.radius+' | '+e.score+'</span></div>';
+  });
   targetEl.innerHTML=h;
 }
 
@@ -251,7 +316,7 @@ function clearLayers(){gridLayer.innerHTML='';tilesLayer.innerHTML='';tiles.clea
 function loadSessionForRadius(r){
   try{const raw=localStorage.getItem(sessionKey(r));if(!raw)return false;const s=JSON.parse(raw);
   if(!s.tiles||!Array.isArray(s.tiles)||s.tiles.length===0)return false;
-  clearLayers();score=s.score||0;gameOver=!!s.gameOver;won=!!s.won;submittedNick=!!s.submittedNick;nextTileId=s.nextTileId||100;
+  clearLayers();score=s.score||0;gameOver=!!s.gameOver;won=!!s.won;submittedNick=!!s.submittedNick;nextTileId=s.nextTileId||100;lastSavedScore=score;
   document.getElementById('score').textContent=score;buildGrid(r);
   for(const td of s.tiles){const id=nextTileId++;const el=document.createElement('div');el.className='hex tile';el.dataset.value=td.value;el.textContent=td.value;positionEl(el,td.q,td.r);tilesLayer.appendChild(el);tiles.set(id,{id,value:td.value,q:td.q,r:td.r,el})}
   loadBest();document.getElementById('overlay').classList.remove('active');
@@ -260,8 +325,17 @@ function loadSessionForRadius(r){
   return true}catch(e){return false}
 }
 function clearSessionForRadius(r){localStorage.removeItem(sessionKey(r))}
-function newGame(){clearSessionForRadius(CURRENT_RADIUS);clearLayers();nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;document.getElementById('score').textContent='0';document.getElementById('overlay').classList.remove('active');document.getElementById('nickname-form').style.display='none';buildGrid(parseInt(radiusSelect.value));for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();saveSession();haptic('light')}
-function switchRadius(newR){if(tiles.size>0)saveSession();const restored=loadSessionForRadius(newR);if(!restored){clearLayers();nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;document.getElementById('score').textContent='0';document.getElementById('overlay').classList.remove('active');document.getElementById('nickname-form').style.display='none';buildGrid(newR);for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();saveSession()}haptic('light')}
+function newGame(){
+  clearSessionForRadius(CURRENT_RADIUS);clearLayers();
+  nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;lastSavedScore=0;
+  document.getElementById('score').textContent='0';
+  document.getElementById('overlay').classList.remove('active');
+  document.getElementById('nickname-form').style.display='none';
+  buildGrid(parseInt(radiusSelect.value));
+  for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();
+  saveSession();haptic('light');
+}
+function switchRadius(newR){if(tiles.size>0)saveSession();const restored=loadSessionForRadius(newR);if(!restored){clearLayers();nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;lastSavedScore=0;document.getElementById('score').textContent='0';document.getElementById('overlay').classList.remove('active');document.getElementById('nickname-form').style.display='none';buildGrid(newR);for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();saveSession()}haptic('light')}
 function renderEmptyGrid(){gridLayer.innerHTML='';for(const c of GRID){const el=document.createElement('div');el.className='hex empty';positionEl(el,c.q,c.r);gridLayer.appendChild(el)}}
 function emptyCells(){const occ=new Set();for(const t of tiles.values())occ.add(key(t.q,t.r));return GRID.filter(c=>!occ.has(key(c.q,c.r)))}
 function addTile(q,r,value){const id=nextTileId++;const el=document.createElement('div');el.className='hex tile new-tile';el.dataset.value=value;el.textContent=value;positionEl(el,q,r);tilesLayer.appendChild(el);const tile={id,value,q,r,el};tiles.set(id,tile);return tile}
@@ -269,13 +343,12 @@ function addRandomTile(){const empty=emptyCells();if(!empty.length)return;const 
 function getLines(dir){const{dq,dr}=DIRECTIONS[dir],lines={};for(const c of GRID){let lid;if(dir===0||dir===3)lid='q='+c.q;else if(dir===1||dir===4)lid='s='+(c.q+c.r);else lid='r='+c.r;if(!lines[lid])lines[lid]=[];lines[lid].push(c)}for(const k in lines)lines[k].sort((a,b)=>(a.q*dq+a.r*dr)-(b.q*dq+b.r*dr));return Object.values(lines)}
 function canStillPlay(){if(emptyCells().length>0)return true;const tl=Array.from(tiles.values());for(const t of tl)for(const d of DIRECTIONS){const nq=t.q+d.dq,nr=t.r+d.dr;if(!inGrid(nq,nr))continue;for(const o of tl)if(o.id!==t.id&&o.q===nq&&o.r===nr&&o.value===t.value)return true}return false}
 
-// ИСПРАВЛЕНО: finishTurn тоже сохраняет, но основной сейв теперь через scheduleAutoSave
 function finishTurn(){
   saveSession();
-  // Финальное сохранение без задержки при Game Over
-  if(score>0)autoSaveScore(score,CURRENT_RADIUS);
   if(!canStillPlay()){
     gameOver=true;SFX.lose();haptic('error');saveBestLocal();
+    // ИСПРАВЛЕНО: При Game Over сохраняем как новую запись в топ-10
+    saveGameOverScore(score,CURRENT_RADIUS);
     saveLBLocal(getDefaultNick(),score);
     saveSession();setTimeout(()=>showOverlay('Игра окончена','Финальный счёт: '+score,false),350);
   }
@@ -288,10 +361,7 @@ function move(dir){
   const merges=[],mergedInto=new Set();let moved=false;
   for(const line of lines){let lastId=null;for(const cell of line){const k=key(cell.q,cell.r),tid=vBoard.get(k);if(tid===undefined)continue;const tile=tiles.get(tid);let tq=cell.q,tr=cell.r,mergeWith=null;while(true){const nq=tq+dq,nr=tr+dr;if(!inGrid(nq,nr))break;const nk=key(nq,nr);if(!vBoard.has(nk)){tq=nq;tr=nr}else{const bid=vBoard.get(nk),b=tiles.get(bid),bv=mergedInto.has(bid)?merges.find(m=>m.survivorId===bid)?.newValue||b.value:b.value;if(bv===tile.value&&!mergedInto.has(bid)&&bid!==lastId){mergeWith=bid;tq=nq;tr=nr}break}}if(mergeWith!==null){merges.push({survivorId:mergeWith,consumedId:tid,newValue:tile.value*2});mergedInto.add(mergeWith);vBoard.delete(k);tile.q=tq;tile.r=tr;positionEl(tile.el,tq,tr);moved=true;lastId=mergeWith}else{if(tq!==cell.q||tr!==cell.r)moved=true;vBoard.delete(k);vBoard.set(key(tq,tr),tid);tile.q=tq;tile.r=tr;positionEl(tile.el,tq,tr);lastId=tid}}}
   if(!moved&&merges.length===0)return;isAnimating=true;SFX.move();haptic(merges.length>0?'heavy':'light');
-  setTimeout(()=>{for(const mg of merges){const s=tiles.get(mg.survivorId),c=tiles.get(mg.consumedId);if(c){c.el.remove();tiles.delete(mg.consumedId)}s.value=mg.newValue;s.el.textContent=mg.newValue;s.el.dataset.value=mg.newValue;s.el.classList.remove('merged-tile','big-flash');void s.el.offsetWidth;s.el.classList.add('merged-tile');SFX.merge(mg.newValue);if(mg.newValue>=256){s.el.classList.add('big-flash');setTimeout(()=>s.el.classList.remove('big-flash'),600);haptic('rigid')}score+=mg.newValue}document.getElementById('score').textContent=score;saveBestLocal();
-  // ИСПРАВЛЕНО: Планируем сохранение после каждого хода
-  scheduleAutoSave();
-  for(const t of tiles.values())if(t.value>=2048&&!won){won=true;SFX.win();haptic('success');showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true);saveSession()}if(magnetEnabled){cascadeNeighborMerges()}else{addRandomTile();finishTurn()}},190);
+  setTimeout(()=>{for(const mg of merges){const s=tiles.get(mg.survivorId),c=tiles.get(mg.consumedId);if(c){c.el.remove();tiles.delete(mg.consumedId)}s.value=mg.newValue;s.el.textContent=mg.newValue;s.el.dataset.value=mg.newValue;s.el.classList.remove('merged-tile','big-flash');void s.el.offsetWidth;s.el.classList.add('merged-tile');SFX.merge(mg.newValue);if(mg.newValue>=256){s.el.classList.add('big-flash');setTimeout(()=>s.el.classList.remove('big-flash'),600);haptic('rigid')}score+=mg.newValue}document.getElementById('score').textContent=score;saveBestLocal();scheduleAutoSave();for(const t of tiles.values())if(t.value>=2048&&!won){won=true;SFX.win();haptic('success');showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true);saveSession()}if(magnetEnabled){cascadeNeighborMerges()}else{addRandomTile();finishTurn()}},190);
 }
 function findNeighborPairs(){const tl=Array.from(tiles.values()),used=new Set(),pairs=[];tl.sort((a,b)=>b.value-a.value);for(const t of tl){if(used.has(t.id))continue;for(const d of DIRECTIONS){const nq=t.q+d.dq,nr=t.r+d.dr;if(!inGrid(nq,nr))continue;const nb=tl.find(o=>o.id!==t.id&&!used.has(o.id)&&o.q===nq&&o.r===nr&&o.value===t.value);if(nb){pairs.push([t,nb]);used.add(t.id);used.add(nb.id);break}}}return pairs}
 function spawnSparks(q,r,n=6){const p=hexToPixel(q,r);for(let i=0;i<n;i++){const s=document.createElement('div');s.className='spark';const a=(i/n)*Math.PI*2+Math.random()*.5,dist=30+Math.random()*20;s.style.left=(cx+p.x)+'px';s.style.top=(cy+p.y)+'px';s.style.setProperty('--dx',Math.cos(a)*dist+'px');s.style.setProperty('--dy',Math.sin(a)*dist+'px');tilesLayer.appendChild(s);setTimeout(()=>s.remove(),600)}}
