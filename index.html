@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<!-- TWA: Запрет зума и фикс safe-area -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Hex2048</title>
+<!-- TWA: Подключение Telegram WebApp SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root { 
+    --bg: #1a1a2e; --panel: #16213e; --border: #0f3460; --accent: #f7b733;
+    /* TWA: Отступы для safe-area (чёлка, домашняя полоска) */
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: radial-gradient(ellipse at center, #232347 0%, var(--bg) 70%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; min-height: 100dvh; /* TWA: fix для мобильных браузеров */
+    font-family: 'Segoe UI', system-ui, sans-serif; color: #eee;
+    overflow: hidden; user-select: none; 
+    padding: calc(10px + var(--safe-top)) 10px calc(10px + var(--safe-bottom));
+    touch-action: none; /* TWA: Блокировка системных жестов */
+    overscroll-behavior: none; /* TWA: Блокировка pull-to-refresh */
+  }
+  h1 { font-size: 2.2rem; margin-bottom: 0.1em; background: linear-gradient(135deg, var(--accent), #fc4a1a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .subtitle { font-size: 0.8rem; color: #888; margin-bottom: 0.6em; }
+  .header { display: flex; align-items: center; gap: 0.8em; margin-bottom: 0.8em; flex-wrap: wrap; justify-content: center; }
+  .score-box { background: var(--panel); border: 2px solid var(--border); border-radius: 10px; padding: 0.3em 0.8em; text-align: center; min-width: 70px; }
+  .score-box .label { font-size: 0.6rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+  .score-box .value { font-size: 1.3rem; font-weight: bold; color: var(--accent); }
+  .diff-select { background: var(--panel); color: #fff; border: 2px solid var(--border); padding: 0.3em 0.6em; border-radius: 8px; fontОтличный выбор. GitHub Pages + Telegram Web App (TWA) — это самый надежный и бесплатный способ. Ниже полная пошаговая инструкция и **адаптированный код**, готовый к деплою.
+
+### Шаг 1: Подготовка репозитория на GitHub
+
+1.  Создайте новый репозиторий (например, `hex2048-tg`).
+2.  Создайте файл `index.html` в корне репозитория.
+3.  Вставьте в него **адаптированный код ниже** (он уже содержит Telegram SDK, тактильную отдачу, экранные кнопки и фиксы для мобильных).
+
+### Шаг 2: Адаптированный код для TWA
+
+Замените содержимое `index.html` на этот код. Ключевые изменения помечены комментариями `// TWA:`:
+
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<!-- TWA: Запрет зума и фикс safe-area -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Hex2048</title>
+<!-- TWA: Подключение Telegram WebApp SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root { 
+    --bg: #1a1a2e; --panel: #16213e; --border: #0f3460; --accent: #f7b733;
+    /* TWA: Отступы для safe-area (чёлка, домашняя полоска) */
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: radial-gradient(ellipse at center, #232347 0%, var(--bg) 70%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; min-height: 100dvh; /* TWA: fix для мобильных браузеров */
+    font-family: 'Segoe UI', system-ui, sans-serif; color: #eee;
+    overflow: hidden; user-select: none; 
+    padding: calc(10px + var(--safe-top)) 10px calc(10px + var(--safe-bottom));
+    touch-action: none; /* TWA: Блокировка системных жестов */
+    overscroll-behavior: none; /* TWA: Блокировка pull-to-refresh */
+  }
+  h1 { font-size: 2.2rem; margin-bottom: 0.1em; background: linear-gradient(135deg, var(--accent), #fc4a1a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .subtitle { font-size: 0.8rem; color: #888; margin-bottom: 0.6em; }
+  .header { display: flex; align-items: center; gap: 0.8em; margin-bottom: 0.8em; flex-wrap: wrap; justify-content: center; }
+  .score-box { background: var(--panel); border: 2px solid var(--border); border-radius: 10px; padding: 0.3em 0.8em; text-align: center; min-width: 70px; }
+  .score-box .label { font-size: 0.6rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+  .score-box .value { font-size: 1.3rem; font-weight: bold; color: var(--accent); }
+  .diff-select { background: var(--panel); color: #fff; border: 2px solid var(--border); padding: 0.3em 0.6em; border-radius: 8px; font-size: 0.85rem; cursor: pointer; outline: none; }
+  .btn { background: linear-gradient(135deg, var(--accent), #fc4a1a); border: none; color: #fff; font-size: 0.85rem; font-weight: bold; padding: 0.4em 1em; border-radius: 8px; cursor: pointer; transition: transform 0.15s; }
+  .btn:active { transform: scale(0.95); }
+  #game-container { position: relative; transition: transform 0.3s ease; touch-action: none; }
+  
+  .hex {
+    position: absolute; width: 70px; height: 60.62px;
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.15rem; font-weight: 700;
+    transition: left 0.18s ease-out, top 0.18s ease-out, background 0.2s;
+    z-index: 1; filter: drop-shadow(0 3px 2px rgba(0,0,0,0.4)) drop-shadow(0 5px 5px rgba(0,0,0,0.25));
+  }
+  .hex::before { content: ''; position: absolute; inset: 0; clip-path: inherit; background: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.08) 40%, transparent 55%, rgba(0,0,0,0.2) 100%); pointer-events: none; }
+  .hex::after { content: ''; position: absolute; inset: 4px; clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%); background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 60%); pointer-events: none; }
+  .hex.empty { background: #1e2942; color: transparent; filter: none; transition: none; }
+  .hex.empty::before, .hex.empty::after { display: none; }
+  .hex.new-tile { animation: popIn 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+  .hex.merged-tile { animation: popMerge 0.32s ease-out; }
+  .hex.neighbor-merged { animation: neighborMerge 0.4s ease-out; }
+  .hex.consumed-neighbor { animation: consumedFade 0.25s ease-out forwards; pointer-events: none; }
+  @keyframes popIn { 0% { transform: scale(0) rotate(-30deg); opacity: 0; } 60% { transform: scale(1.15) rotate(5deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+  @keyframes popMerge { 0% { transform: scale(1); } 30% { transform: scale(1.3); } 100% { transform: scale(1); } }
+  @keyframes neighborMerge { 0% { transform: scale(1); } 30% { transform: scale(1.35) rotate(5deg); filter: drop-shadow(0 0 15px rgba(255,220,100,0.9)); } 60% { transform: scale(0.95); } 100% { transform: scale(1); } }
+  @keyframes consumedFade { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(0.3) rotate(180deg); opacity: 0; } }
+  
+  .hex[data-value="2"]    { background: linear-gradient(145deg, #4a5f7a, #3a4b63); color: #d4e8c8; }
+  .hex[data-value="4"]    { background: linear-gradient(145deg, #5a7494, #4a5f7a); color: #c0e8d4; }
+  .hex[data-value="8"]    { background: linear-gradient(145deg, #ffcb47, #f7b733); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+  .hex[data-value="16"]   { background: linear-gradient(145deg, #ff6b3a, #fc4a1a); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+  .hex[data-value="32"]   { background: linear-gradient(145deg, #f062a3, #e84393); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+  .hex[data-value="64"]   { background: linear-gradient(145deg, #e84545, #d63031); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+  .hex[data-value="128"]  { background: linear-gradient(145deg, #ffe082, #fdcb6e); color: #2d3436; }
+  .hex[data-value="256"]  { background: linear-gradient(145deg, #ffb74d, #f39c12); color: #fff; text-shadow: 0 0 4px rgba(255,255,255,0.6); animation: glowOrange 2s ease-in-out infinite; }
+  .hex[data-value="512"]  { background: linear-gradient(145deg, #ff8a65, #e17055); color: #fff; text-shadow: 0 0 5px rgba(255,255,255,0.7); animation: glowRed 1.8s ease-in-out infinite; }
+  .hex[data-value="1024"] { background: linear-gradient(145deg, #9575cd, #6c5ce7); color: #fff; font-size: 0.95rem; text-shadow: 0 0 6px rgba(255,255,255,0.8); animation: glowPurple 1.6s ease-in-out infinite; }
+  .hex[data-value="2048"] { background: linear-gradient(145deg, #ffd54f, #ff9800); color: #fff; font-size: 0.95rem; text-shadow: 0 0 8px rgba(255,255,255,0.9); animation: glowGold 1.4s ease-in-out infinite; }
+  .hex[data-value="4096"] { background: linear-gradient(145deg, #ba68c8, #e84393); color: #fff; font-size: 0.95rem; text-shadow: 0 0 10px #fff; animation: glowPink 1.3s ease-in-out infinite; }
+  .hex[data-value="8192"] { background: linear-gradient(145deg, #4dd0e1, #00b894); color: #fff; font-size: 0.95rem; text-shadow: 0 0 10px #fff; animation: glowCyan 1.2s ease-in-out infinite; }
+  .hex.higher { background: linear-gradient(145deg, #f06292, #6c5ce7); color: #fff; font-size: 0.8rem; text-shadow: 0 0 10px #fff; animation: glowPink 1.2s ease-in-out infinite; }
+  @keyframes glowOrange { 0%,100% { filter: drop-shadow(0 0 6px rgba(243,156,18,0.6)); } 50% { filter: drop-shadow(0 0 14px rgba(243,156,18,0.9)); } }
+  @keyframes glowRed { 0%,100% { filter: drop-shadow(0 0 7px rgba(225,112,85,0.7)); } 50% { filter: drop-shadow(0 0 16px rgba(225,112,85,1)); } }
+  @keyframes glowPurple { 0%,100% { filter: drop-shadow(0 0 8px rgba(108,92,231,0.7)); } 50% { filter: drop-shadow(0 0 18px rgba(108,92,231,1)); } }
+  @keyframes glowGold { 0%,100% { filter: drop-shadow(0 0 10px rgba(255,152,0,0.8)); } 50% { filter: drop-shadow(0 0 22px rgba(255,213,79,1)); } }
+  @keyframes glowPink { 0%,100% { filter: drop-shadow(0 0 10px rgba(232,67,147,0.8)); } 50% { filter: drop-shadow(0 0 22px rgba(232,67,147,1)); } }
+  @keyframes glowCyan { 0%,100% { filter: drop-shadow(0 0 10px rgba(0,206,201,0.8)); } 50% { filter: drop-shadow(0 0 24px rgba(77,208,225,1)); } }
+  .hex.big-flash::before { animation: flashOverlay 0.6s ease-out; }
+  @keyframes flashOverlay { 0% { background: rgba(255,255,255,0.95); } 100% { background: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.08) 40%, transparent 55%, rgba(0,0,0,0.2) 100%); } }
+  .spark { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle, #fff, #ffd54f); pointer-events: none; z-index: 5; animation: sparkFly 0.6s ease-out forwards; }
+  @keyframes sparkFly { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0); opacity: 0; } }
+
+  /* TWA: Экранные кнопки управления для мобильных */
+  .mobile-controls {
+    display: none; margin-top: 0.8em; gap: 4px;
+    grid-template-columns: repeat(3, 52px); grid-template-rows: repeat(2, 52px);
+    justify-content: center; align-items: center;
+  }
+  .mobile-controls button {
+    width: 52px; height: 52px; font-size: 1.2rem; background: var(--panel); border: 2px solid var(--border);
+    color: var(--accent); border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.1s;
+  }
+  .mobile-controls button:active { background: var(--border); transform: scale(0.92); }
+  .mc-up { grid-column: 2; grid-row: 1; }
+  .mc-nw { grid-column: 1; grid-row: 1; }
+  .mc-ne { grid-column: 3; grid-row: 1; }
+  .mc-sw { grid-column: 1; grid-row: 2; }
+  .mc-down { grid-column: 2; grid-row: 2; }
+  .mc-se { grid-column: 3; grid-row: 2; }
+
+  .overlay { position: absolute; inset: 0; background: rgba(26, 26, 46, 0.94); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; border-radius: 16px; opacity: 0; pointer-events: none; transition: opacity 0.35s; padding: 1.5em; }
+  .overlay.active { opacity: 1; pointer-events: all; }
+  .overlay h2 { font-size: 1.8rem; margin-bottom: 0.3em; background: linear-gradient(135deg, var(--accent), #fc4a1a); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .overlay p { font-size: 0.95rem; color: #aaa; margin-bottom: 0.8em; text-align: center; }
+  #nickname-form { display: none; align-items: center; gap: 0.4em; margin-bottom: 1em; }
+  #nickname-input { padding: 0.4em 0.6em; border-radius: 6px; border: 2px solid var(--border); background: var(--panel); color: #fff; font-size: 0.95rem; width: 150px; text-align: center; outline: none; }
+  #nickname-input:focus { border-color: var(--accent); }
+  #leaderboard { width: 240px; max-height: 180px; overflow-y: auto; background: rgba(22, 33, 62, 0.7); border-radius: 8px; padding: 0.4em; font-size: 0.8rem; margin-bottom: 0.8em; }
+  .lb-header { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding: 0.3em 0.5em; color: #888; margin-bottom: 0.2em; }
+  .lb-row { display: flex; justify-content: space-between; padding: 0.25em 0.5em; border-radius: 4px; transition: background 0.2s; }
+  .lb-row:hover { background: rgba(247, 183, 51, 0.1); }
+  .lb-row.top1 { color: var(--accent); font-weight: bold; }
+  .controls-hint { margin-top: 0.6em; font-size: 0.7rem; color: #555; text-align: center; line-height: 1.5; background: rgba(22, 33, 62, 0.5); padding: 0.3em 0.6em; border-radius: 6px; max-width: 500px; }
+  .controls-hint b { color: #f7b733; }
+  
+  /* TWA: Показываем экранные кнопки только на тач-устройствах */
+  @media (hover: none) and (pointer: coarse) {
+    .mobile-controls { display: grid; }
+    .controls-hint { display: none; }
+  }
+  @media (max-width: 600px) { h1 { font-size: 1.8rem; } .header { gap: 0.6em; } .score-box { padding: 0.3em 0.6em; } }
+</style>
+</head>
+<body>
+
+<h1>⬡ Hex 2048</h1>
+<p class="subtitle">Соседи одинакового номинала сливаются каскадом!</p>
+
+<div class="header">
+  <div class="score-box"><div class="label">Счёт</div><div class="value" id="score">0</div></div>
+  <select class="diff-select" id="radiusSelect">
+    <option value="3">3</option>
+    <option value="4" selected>4</option>
+    <option value="5">5</option>
+    <option value="6">6</option>
+  </select>
+  <button class="btn" id="newGameBtn">Новая</button>
+  <div class="score-box"><div class="label">Рекорд</div><div class="value" id="best">0</div></div>
+</div>
+
+<div id="game-container"></div>
+
+<!-- TWA: Экранные кнопки для 6 направлений -->
+<div class="mobile-controls">
+  <button class="mc-nw" data-dir="5">↖</button>
+  <button class="mc-up" data-dir="0">↑</button>
+  <button class="mc-ne" data-dir="1">↗</button>
+  <button class="mc-sw" data-dir="4">↙</button>
+  <button class="mc-down" data-dir="3">↓</button>
+  <button class="mc-se" data-dir="2">↘</button>
+</div>
+
+<div class="overlay" id="overlay">
+  <h2 id="overlayTitle">Игра окончена!</h2>
+  <p id="overlayMsg">Попробуйте ещё раз</p>
+  <div id="nickname-form">
+    <input type="text" id="nickname-input" placeholder="Ник" maxlength="12">
+    <button class="btn" id="submit-nick" style="padding:0.4em 0.8em;">✓</button>
+  </div>
+  <div id="leaderboard"></div>
+  <button class="btn" id="overlayBtn">Заново</button>
+</div>
+
+<div class="controls-hint">
+  <b>↑</b> <b>↓</b> — вертикаль | <b>↑+←</b> <b>↑+→</b> <b>↓+←</b> <b>↓+→</b> — диагонали<br>
+  💡 Соседние парные плитки сливаются автоматически!
+</div>
+
+<script>
+// === TWA: Инициализация Telegram WebApp ===
+const tg = window.Telegram?.WebApp;
+let isTWA = false;
+if (tg) {
+  isTWA = true;
+  tg.ready();
+  tg.expand();
+  // Адаптация цветов под тему пользователя
+  if (tg.themeParams) {
+    const root = document.documentElement.style;
+    if (tg.themeParams.bg_color) root.setProperty('--bg', tg.themeParams.bg_color);
+    if (tg.themeParams.secondary_bg_color) root.setProperty('--panel', tg.themeParams.secondary_bg_color);
+    if (tg.themeParams.button_color) root.setProperty('--accent', tg.themeParams.button_color);
+  }
+  // Настройка MainButton
+  tg.MainButton.setText('🔄 Новая игра');
+  tg.MainButton.onClick(() => resetGame());
+}
+
+function haptic(type = 'medium') {
+  if (isTWA && tg.HapticFeedback) {
+    tg.HapticFeedback.impactOccurred(type);
+  }
+}
+
+// === Конфигурация игры ===
+const HEX_SIZE = 35;
+const HALF_W = 35, HALF_H = 30.31;
+let CURRENT_RADIUS = 4;
+let GRID = [];
+let cx = 0, cy = 0;
+const DIRECTIONS = [
+  { dq: 0, dr: -1 }, { dq: 1, dr: -1 }, { dq: 1, dr: 0 },
+  { dq: 0, dr: 1 }, { dq: -1, dr: 1 }, { dq: -1, dr: 0 }
+];
+const key = (q, r) => `${q},${r}`;
+const container = document.getElementById('game-container');
+const tiles = new Map();
+let nextTileId = 1;
+let isAnimating = false;
+let score = 0, best = 0, gameOver = false, won = false, submittedNick = false;
+
+function hexToPixel(q, r) { return { x: HEX_SIZE * 1.5 * q, y: HEX_SIZE * Math.sqrt(3) * (r + q / 2) }; }
+function inGrid(q, r) { return Math.abs(q) <= CURRENT_RADIUS && Math.abs(r) <= CURRENT_RADIUS && Math.abs(q + r) <= CURRENT_RADIUS; }
+
+function buildGrid(r) {
+  CURRENT_RADIUS = r; GRID = [];
+  for (let q = -r; q <= r; q++) for (let r2 = -r; r2 <= r; r2++) {
+    if (Math.abs(q + r2) <= r) GRID.push({ q, r: r2 });
+  }
+  updateContainerSize(); loadBest();
+}
+
+function updateContainerSize() {
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const c of GRID) {
+    const p = hexToPixel(c.q, c.r);
+    minX = Math.min(minX, p.x - HALF_W); maxX = Math.max(maxX, p.x + HALF_W);
+    minY = Math.min(minY, p.y - HALF_H); maxY = Math.max(maxY, p.y + HALF_H);
+  }
+  const w = Math.ceil(maxX - minX + 40), h = Math.ceil(maxY - minY + 40);
+  container.style.width = w + 'px'; container.style.height = h + 'px';
+  cx = w / 2; cy = h / 2;
+  // TWA: Используем stable height для корректного масштаба
+  const availH = isTWA ? (tg.viewportStableHeight || window.innerHeight) : window.innerHeight;
+  const maxW = window.innerWidth - 20, maxH = availH - 220;
+  const scale = Math.min(1, maxW / w, maxH / h);
+  container.style.transform = `scale(${scale})`;
+  container.style.transformOrigin = 'center center';
+}
+
+function positionEl(el, q, r) {
+  const p = hexToPixel(q, r);
+  el.style.left = (cx + p.x - HALF_W) + 'px';
+  el.style.top = (cy + p.y - HALF_H) + 'px';
+}
+
+function loadBest() {
+  best = parseInt(localStorage.getItem(`hex2048best_${CURRENT_RADIUS}`) || '0');
+  document.getElementById('best').textContent = best;
+}
+function saveBest() {
+  if (score > best) {
+    best = score;
+    localStorage.setItem(`hex2048best_${CURRENT_RADIUS}`, best);
+    document.getElementById('best').textContent = best;
+  }
+}
+const LB_KEY = 'hex2048leaderboard', MAX_LB = 10;
+function loadLB() { try { return JSON.parse(localStorage.getItem(LB_KEY) || '[]'); } catch { return []; } }
+function saveLB(nick, sc) {
+  const lb = loadLB();
+  lb.push({ nick: nick.trim(), score: sc, radius: CURRENT_RADIUS, date: new Date().toLocaleDateString() });
+  lb.sort((a, b) => b.score - a.score);
+  localStorage.setItem(LB_KEY, JSON.stringify(lb.slice(0, MAX_LB)));
+  renderLB();
+}
+function renderLB() {
+  const lb = loadLB(), el = document.getElementById('leaderboard');
+  if (!lb.length) { el.innerHTML = '<div style="text-align:center; color:#555; padding:0.8em;">Пока пусто</div>'; return; }
+  let html = `<div class="lb-header"><span>Игрок</span><span>Счёт</span></div>`;
+  lb.forEach((e, i) => html += `<div class="lb-row ${i===0?'top1':''}"><span>${i+1}. ${e.nick} <small style="color:#555">(${e.radius})</small></span><span>${e.score}</span></div>`);
+  el.innerHTML = html;
+}
+
+function resetGame() {
+  tiles.forEach(t => t.el.remove()); tiles.clear();
+  nextTileId = 1; score = 0; gameOver = false; won = false; submittedNick = false; isAnimating = false;
+  document.getElementById('score').textContent = '0';
+  document.getElementById('overlay').classList.remove('active');
+  document.getElementById('nickname-form').style.display = 'none';
+  loadBest(); renderEmptyGrid();
+  const initTiles = Math.max(2, Math.floor(CURRENT_RADIUS * 0.6));
+  for (let i = 0; i < initTiles; i++) addRandomTile();
+  haptic('light');
+}
+
+function renderEmptyGrid() {
+  container.querySelectorAll('.hex.empty').forEach(e => e.remove());
+  for (const c of GRID) {
+    const el = document.createElement('div'); el.className = 'hex empty';
+    positionEl(el, c.q, c.r); container.appendChild(el);
+  }
+}
+
+function emptyCells() {
+  const occ = new Set();
+  for (const t of tiles.values()) occ.add(key(t.q, t.r));
+  return GRID.filter(c => !occ.has(key(c.q, c.r)));
+}
+
+function addTile(q, r, value) {
+  const id = nextTileId++;
+  const el = document.createElement('div');
+  el.className = 'hex new-tile'; el.dataset.value = value; el.textContent = value;
+  positionEl(el, q, r); container.appendChild(el);
+  const tile = { id, value, q, r, el }; tiles.set(id, tile);
+  return tile;
+}
+
+function addRandomTile() {
+  const empty = emptyCells(); if (!empty.length) return;
+  const c = empty[Math.floor(Math.random() * empty.length)];
+  addTile(c.q, c.r, Math.random() < 0.9 ? 2 : 4);
+}
+
+function getLines(dir) {
+  const { dq, dr } = DIRECTIONS[dir]; const lines = {};
+  for (const c of GRID) {
+    let lineId;
+    if (dir === 0 || dir === 3) lineId = 'q=' + c.q;
+    else if (dir === 1 || dir === 4) lineId = 's=' + (c.q + c.r);
+    else lineId = 'r=' + c.r;
+    if (!lines[lineId]) lines[lineId] = []; lines[lineId].push(c);
+  }
+  for (const k in lines) lines[k].sort((a, b) => (a.q * dq + a.r * dr) - (b.q * dq + b.r * dr));
+  return Object.values(lines);
+}
+
+function move(dir) {
+  if (gameOver || isAnimating) return;
+  const { dq, dr } = DIRECTIONS[dir]; const lines = getLines(dir);
+  const vBoard = new Map();
+  for (const t of tiles.values()) vBoard.set(key(t.q, t.r), t.id);
+  const merges = []; const mergedInto = new Set(); let moved = false;
+  
+  for (const line of lines) {
+    let lastPlacedId = null;
+    for (const cell of line) {
+      const k = key(cell.q, cell.r); const tid = vBoard.get(k);
+      if (tid === undefined) continue;
+      const tile = tiles.get(tid);
+      let tq = cell.q, tr = cell.r; let canMergeWith = null;
+      while (true) {
+        const nq = tq + dq, nr = tr + dr;
+        if (!inGrid(nq, nr)) break;
+        const nk = key(nq, nr);
+        if (!vBoard.has(nk)) { tq = nq; tr = nr; }
+        else {
+          const blockerId = vBoard.get(nk); const blocker = tiles.get(blockerId);
+          const blockerCurrentVal = mergedInto.has(blockerId) 
+            ? merges.find(m => m.survivorId === blockerId)?.newValue || blocker.value : blocker.value;
+          if (blockerCurrentVal === tile.value && !mergedInto.has(blockerId) && blockerId !== lastPlacedId) {
+            canMergeWith = blockerId; tq = nq; tr = nr;
+          }
+          break;
+        }
+      }
+      if (canMergeWith !== null) {
+        const newValue = tile.value * 2;
+        merges.push({ survivorId: canMergeWith, consumedId: tid, newValue });
+        mergedInto.add(canMergeWith); vBoard.delete(k);
+        tile.q = tq; tile.r = tr; positionEl(tile.el, tq, tr);
+        moved = true; lastPlacedId = canMergeWith;
+      } else {
+        if (tq !== cell.q || tr !== cell.r) moved = true;
+        vBoard.delete(k); vBoard.set(key(tq, tr), tid);
+        tile.q = tq; tile.r = tr; positionEl(tile.el, tq, tr);
+        lastPlacedId = tid;
+      }
+    }
+  }
+  
+  if (!moved && merges.length === 0) return;
+  isAnimating = true;
+  haptic(merges.length > 0 ? 'heavy' : 'light');
+  
+  setTimeout(() => {
+    for (const mg of merges) {
+      const survivor = tiles.get(mg.survivorId);
+      const consumed = tiles.get(mg.consumedId);
+      if (consumed) { consumed.el.remove(); tiles.delete(mg.consumedId); }
+      survivor.value = mg.newValue; survivor.el.textContent = mg.newValue; survivor.el.dataset.value = mg.newValue;
+      survivor.el.classList.remove('merged-tile', 'big-flash'); void survivor.el.offsetWidth;
+      survivor.el.classList.add('merged-tile');
+      if (mg.newValue >= 256) {
+        survivor.el.classList.add('big-flash');
+        setTimeout(() => survivor.el.classList.remove('big-flash'), 600);
+        haptic('rigid');
+      }
+      score += mg.newValue;
+    }
+    document.getElementById('score').textContent = score; saveBest();
+    for (const t of tiles.values()) {
+      if (t.value >= 2048 && !won) {
+        won = true; haptic('success');
+        showOverlay('🎉 Победа!', `Счёт: ${score}. Продолжайте!`, true);
+      }
+    }
+    cascadeNeighborMerges();
+  }, 190);
+}
+
+function findNeighborPairs() {
+  const tileList = Array.from(tiles.values());
+  const used = new Set(); const pairs = [];
+  tileList.sort((a, b) => b.value - a.value);
+  for (const t of tileList) {
+    if (used.has(t.id)) continue;
+    for (const d of DIRECTIONS) {
+      const nq = t.q + d.dq, nr = t.r + d.dr;
+      if (!inGrid(nq, nr)) continue;
+      const neighbor = tileList.find(o => o.id !== t.id && !used.has(o.id) && o.q === nq && o.r === nr && o.value === t.value);
+      if (neighbor) { pairs.push([t, neighbor]); used.add(t.id); used.add(neighbor.id); break; }
+    }
+  }
+  return pairs;
+}
+
+function spawnSparks(q, r, count = 6) {
+  const p = hexToPixel(q, r);
+  for (let i = 0; i < count; i++) {
+    const spark = document.createElement('div'); spark.className = 'spark';
+    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+    const dist = 30 + Math.random() * 20;
+    spark.style.left = (cx + p.x) + 'px'; spark.style.top = (cy + p.y) + 'px';
+    spark.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
+    spark.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+    container.appendChild(spark); setTimeout(() => spark.remove(), 600);
+  }
+}
+
+function performNeighborMerges(pairs) {
+  haptic('medium');
+  for (const [t1, t2] of pairs) {
+    t2.el.classList.add('consumed-neighbor');
+    setTimeout(() => { t2.el.remove(); tiles.delete(t2.id); }, 250);
+    const newValue = t1.value * 2;
+    t1.value = newValue; t1.el.textContent = newValue; t1.el.dataset.value = newValue;
+    t1.el.classList.remove('neighbor-merged', 'big-flash'); void t1.el.offsetWidth;
+    t1.el.classList.add('neighbor-merged');
+    if (newValue >= 256) {
+      t1.el.classList.add('big-flash');
+      setTimeout(() => t1.el.classList.remove('big-flash'), 600);
+    }
+    spawnSparks(t1.q, t1.r, 8); score += newValue;
+  }
+  document.getElementById('score').textContent = score; saveBest();
+  for (const t of tiles.values()) {
+    if (t.value >= 2048 && !won) {
+      won = true; haptic('success');
+      showOverlay('🎉 Победа!', `Счёт: ${score}. Продолжайте!`, true);
+    }
+  }
+}
+
+function cascadeNeighborMerges() {
+  const pairs = findNeighborPairs();
+  if (pairs.length === 0) {
+    addRandomTile();
+    if (isGameOver()) {
+      gameOver = true; haptic('error');
+      setTimeout(() => showOverlay('Игра окончена', `Финальный счёт: ${score}`, false), 350);
+    }
+    isAnimating = false; return;
+  }
+  performNeighborMerges(pairs);
+  setTimeout(cascadeNeighborMerges, 300);
+}
+
+function isGameOver() {
+  if (emptyCells().length > 0) return false;
+  const tileList = Array.from(tiles.values());
+  for (const t of tileList) {
+    for (const d of DIRECTIONS) {
+      const nq = t.q + d.dq, nr = t.r + d.dr;
+      if (!inGrid(nq, nr)) continue;
+      for (const other of tileList) {
+        if (other.id !== t.id && other.q === nq && other.r === nr && other.value === t.value) return false;
+      }
+    }
+  }
+  return true;
+}
+
+function showOverlay(title, msg, keep) {
+  document.getElementById('overlayTitle').textContent = title;
+  document.getElementById('overlayMsg').textContent = msg;
+  const form = document.getElementById('nickname-form'), input = document.getElementById('nickname-input');
+  const btn = document.getElementById('overlayBtn'); renderLB();
+  if (keep) {
+    form.style.display = 'none'; btn.textContent = 'Продолжить';
+    btn.onclick = () => document.getElementById('overlay').classList.remove('active');
+  } else {
+    btn.textContent = 'Заново'; btn.onclick = () => resetGame();
+    if (score > 0 && !submittedNick) { form.style.display = 'flex'; input.value = ''; input.focus(); }
+    else form.style.display = 'none';
+  }
+  document.getElementById('overlay').classList.add('active');
+}
+
+document.getElementById('submit-nick').addEventListener('click', () => {
+  const nick = document.getElementById('nickname-input').value.trim();
+  if (nick) { saveLB(nick, score); submittedNick = true; document.getElementById('nickname-form').style.display = 'none'; renderLB(); haptic('success'); }
+});
+document.getElementById('nickname-input').addEventListener('keypress', e => { if (e.key === 'Enter') document.getElementById('submit-nick').click(); });
+
+// Клавиатура
+const pressed = new Set(); let lastDir = -1;
+document.addEventListener('keydown', e => {
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+    e.preventDefault(); if (e.repeat) return; pressed.add(e.key);
+    const dir = getDir(); if (dir !== -1 && dir !== lastDir) { lastDir = dir; move(dir); }
+  }
+});
+document.addEventListener('keyup', e => { if (pressed.has(e.key)) { pressed.delete(e.key); lastDir = -1; } });
+function getDir() {
+  const u = pressed.has('ArrowUp'), d = pressed.has('ArrowDown');
+  const l = pressed.has('ArrowLeft'), r = pressed.has('ArrowRight');
+  if (u && l) return 5; if (u && r) return 1; if (d && l) return 4; if (d && r) return 2;
+  if (u) return 0; if (d) return 3; return -1;
+}
+
+// Свайпы
+let tx = 0, ty = 0;
+document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+document.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < 30) return;
+  const angle = Math.atan2(dy, dx) * 180 / Math.PI; let dir;
+  if (angle >= -30 && angle < 30) dir = 2; else if (angle >= 30 && angle < 90) dir = 3;
+  else if (angle >= 90 && angle < 150) dir = 4; else if (angle >= 150 || angle < -150) dir = 5;
+  else if (angle >= -150 && angle < -90) dir = 0; else dir = 1;
+  move(dir);
+}, { passive: true });
+
+// TWA: Экранные кнопки
+document.querySelectorAll('.mobile-controls button').forEach(btn => {
+  btn.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // Предотвращаем двойной тап и зум
+    move(parseInt(btn.dataset.dir));
+  }, { passive: false });
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    move(parseInt(btn.dataset.dir));
+  });
+});
+
+document.getElementById('radiusSelect').addEventListener('change', e => { buildGrid(parseInt(e.target.value)); resetGame(); });
+document.getElementById('newGameBtn').addEventListener('click', resetGame);
+
+// TWA: Корректный ресайз при открытии клавиатуры
+if (isTWA) {
+  tg.onEvent('viewportChanged', () => {
+    updateContainerSize(); renderEmptyGrid();
+    for (const t of tiles.values()) positionEl(t.el, t.q, t.r);
+  });
+} else {
+  window.addEventListener('resize', () => {
+    updateContainerSize(); renderEmptyGrid();
+    for (const t of tiles.values()) positionEl(t.el, t.q, t.r);
+  });
+}
+
+buildGrid(4); resetGame();
+</script>
+</body>
+</html>
