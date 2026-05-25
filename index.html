@@ -68,6 +68,8 @@
   .mobile-controls button:active{background:var(--border);transform:scale(.92)}
   .mc-up{grid-column:2;grid-row:1}.mc-nw{grid-column:1;grid-row:1}.mc-ne{grid-column:3;grid-row:1}
   .mc-sw{grid-column:1;grid-row:2}.mc-down{grid-column:2;grid-row:2}.mc-se{grid-column:3;grid-row:2}
+
+  /* Оверлеи */
   .overlay{position:absolute;inset:0;background:var(--overlay);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;border-radius:16px;opacity:0;pointer-events:none;transition:opacity .35s;padding:1.5em}
   .overlay.active{opacity:1;pointer-events:all}
   .overlay h2{font-size:1.6rem;margin-bottom:.3em;background:linear-gradient(135deg,var(--accent),#fc4a1a);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
@@ -75,12 +77,19 @@
   #nickname-form{display:none;align-items:center;gap:.4em;margin-bottom:.8em}
   #nickname-input{padding:.35em .5em;border-radius:6px;border:2px solid var(--border);background:var(--panel);color:var(--text);font-size:.9rem;width:140px;text-align:center;outline:none;touch-action:auto}
   #nickname-input:focus{border-color:var(--accent)}
-  #leaderboard{width:250px;max-height:160px;overflow-y:auto;background:var(--panel);border-radius:8px;padding:.3em;font-size:.75rem;margin-bottom:.7em;overscroll-behavior:contain}
+
+  /* Таблица лидеров — единый стиль для обоих оверлеев */
+  .lb-container{width:280px;max-height:220px;overflow-y:auto;background:var(--panel);border-radius:8px;padding:.4em;font-size:.8rem;margin-bottom:.7em;overscroll-behavior:contain}
+  .lb-tabs{display:flex;gap:4px;margin-bottom:.4em}
+  .lb-tab{flex:1;padding:.3em;border-radius:6px;border:2px solid var(--border);background:transparent;color:var(--text-sec);font-size:.7rem;font-weight:bold;cursor:pointer;text-align:center;transition:all .2s}
+  .lb-tab.active{background:var(--accent);color:#1a1a2e;border-color:var(--accent)}
   .lb-header{display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:.25em .4em;color:var(--text-sec);margin-bottom:.15em}
-  .lb-row{display:flex;justify-content:space-between;padding:.2em .4em;border-radius:4px;color:var(--text)}
+  .lb-row{display:flex;justify-content:space-between;padding:.25em .4em;border-radius:4px;color:var(--text)}
   .lb-row:hover{background:rgba(247,183,51,.1)}.lb-row.top1{color:var(--accent);font-weight:bold}
   .lb-row.me{background:rgba(247,183,51,.15);border:1px solid var(--accent)}
-  .lb-loading{text-align:center;color:var(--text-sec);padding:.6em}
+  .lb-loading{text-align:center;color:var(--text-sec);padding:.8em}
+  .lb-empty{text-align:center;color:var(--text-sec);padding:.8em;font-style:italic}
+
   @media(hover:none) and (pointer:coarse){.mobile-controls{display:grid}}
   @media(max-width:600px){h1{font-size:1.4rem;margin:.15em 0}.header{gap:.3em;margin-bottom:.2em}.score-box{padding:.15em .4em;min-width:45px}.score-box .value{font-size:1rem}.mobile-controls{--btn-size:40px;gap:2px;margin-top:.2em}}
   @media(max-height:700px){h1{font-size:1.3rem;margin:.1em 0}.header{margin-bottom:.15em}.mobile-controls{--btn-size:36px;gap:2px;margin-top:.1em}}
@@ -96,6 +105,8 @@
   </select>
   <button class="btn" id="newGameBtn">Новая</button>
   <button class="icon-btn" id="shareHeaderBtn" aria-label="Поделиться">📤</button>
+  <!-- Кнопка чемпионов -->
+  <button class="icon-btn" id="trophyBtn" aria-label="Чемпионы" title="Таблица лидеров">🏆</button>
   <div class="score-box"><div class="label">Рекорд</div><div class="value" id="best">0</div></div>
   <button class="icon-btn active" id="magnetToggle" aria-label="Магнит">🧲</button>
   <button class="icon-btn" id="soundToggle" aria-label="Звук">🔊</button>
@@ -106,13 +117,26 @@
   <button class="mc-nw" data-dir="5">↖</button><button class="mc-up" data-dir="0">↑</button><button class="mc-ne" data-dir="1">↗</button>
   <button class="mc-sw" data-dir="4">↙</button><button class="mc-down" data-dir="3">↓</button><button class="mc-se" data-dir="2">↘</button>
 </div>
+
+<!-- Оверлей Game Over -->
 <div class="overlay" id="overlay">
   <h2 id="overlayTitle">Игра окончена!</h2>
   <p id="overlayMsg">Попробуйте ещё раз</p>
   <div id="nickname-form"><input type="text" id="nickname-input" placeholder="Ваш ник" maxlength="12"><button class="btn" id="submit-nick" style="padding:.35em .7em;">✓</button></div>
-  <div id="leaderboard"></div>
+  <div class="lb-container" id="gameOverLb"></div>
   <button class="btn btn-share" id="overlayShareBtn">📤 Поделиться результатом</button>
   <button class="btn" id="overlayBtn">Заново</button>
+</div>
+
+<!-- Оверлей Чемпионов (отдельный) -->
+<div class="overlay" id="trophyOverlay">
+  <h2>🏆 Чемпионы</h2>
+  <div class="lb-tabs">
+    <button class="lb-tab active" id="tabCurrent">Текущее поле</button>
+    <button class="lb-tab" id="tabAll">Все поля</button>
+  </div>
+  <div class="lb-container" id="trophyLb"></div>
+  <button class="btn" id="trophyCloseBtn">Закрыть</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
@@ -142,8 +166,33 @@ async function saveScoreWithNick(nick,sc,radius){
   console.log('[DB] ✅ Nick saved:',nick)}catch(e){console.error('[DB] ❌ SaveNick:',e.message)}
 }
 async function saveShareEvent(rt){const uid=getTgUserId();if(!supabaseClient||!uid)return;try{await supabaseClient.from('share_events').insert({sender_id:uid,recipient_type:rt||null,score,radius:CURRENT_RADIUS})}catch(e){}}
-async function loadLeaderboardGlobal(){if(!supabaseClient)return null;try{const{data,error}=await supabaseClient.from('leaderboard').select('nick,score,radius,user_id').order('score',{ascending:false}).limit(10);return error?null:data}catch(e){return null}}
+
+// ИСПРАВЛЕНО: Загрузка лидерборда с фильтром по радиусу + общий
+async function loadLeaderboard(radius){
+  if(!supabaseClient)return null;
+  try{
+    let query=supabaseClient.from('leaderboard').select('nick,score,radius,user_id').order('score',{ascending:false}).limit(15);
+    if(radius)query=query.eq('radius',radius);
+    const{data,error}=await query;
+    if(error){console.error('[DB] LB load error:',error.message);return null}
+    console.log('[DB] ✅ LB loaded:',data?data.length:0,'rows, radius:',radius||'all');
+    return data;
+  }catch(e){console.error('[DB] LB exception:',e);return null}
+}
+
 async function getPersonalBest(){const uid=getTgUserId();if(!supabaseClient||!uid)return null;try{const{data,error}=await supabaseClient.from('leaderboard').select('score').eq('user_id',uid).eq('radius',CURRENT_RADIUS).order('score',{ascending:false}).limit(1);return(error||!data||!data.length)?null:data[0].score}catch(e){return null}}
+
+// === РЕНДЕРИНГ ЛИДЕРБОРДА ===
+function renderLBRows(rows,targetEl){
+  const myId=getTgUserId();
+  if(!rows||!rows.length){targetEl.innerHTML='<div class="lb-empty">Пока нет результатов.<br>Сыграйте до конца!</div>';return}
+  let h='<div class="lb-header"><span># Игрок</span><span>Поле / Счёт</span></div>';
+  rows.forEach((e,i)=>{
+    const isMe=myId&&e.user_id===myId;
+    h+='<div class="lb-row'+(i===0?' top1':'')+(isMe?' me':'')+'"><span>'+(i+1)+'. '+e.nick+'</span><span>'+e.radius+' | '+e.score+'</span></div>';
+  });
+  targetEl.innerHTML=h;
+}
 
 // === МАГНИТ ===
 const MAGNET_KEY='hex2048_magnet';let magnetEnabled=localStorage.getItem(MAGNET_KEY)!=='false';const magnetToggle=document.getElementById('magnetToggle');
@@ -165,9 +214,9 @@ function setTheme(t){document.documentElement.setAttribute('data-theme',t);theme
 function initTheme(){const s=localStorage.getItem(THEME_KEY);if(s)return setTheme(s);try{const bg=window.Telegram?.WebApp?.themeParams?.bg_color||'';if(bg&&/^#[0-3]/i.test(bg))return setTheme('dark');if(bg)return setTheme('light')}catch(e){}setTheme(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light')}
 themeToggle.addEventListener('click',()=>{const c=document.documentElement.getAttribute('data-theme')||'dark';setTheme(c==='dark'?'light':'dark');try{window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light')}catch(e){}});
 
-document.addEventListener('touchmove',e=>{if(e.target.closest('#leaderboard')||e.target.closest('#nickname-input'))return;e.preventDefault()},{passive:false});
+document.addEventListener('touchmove',e=>{if(e.target.closest('.lb-container')||e.target.closest('#nickname-input'))return;e.preventDefault()},{passive:false});
 
-// === TWA + EXPAND ===
+// === TWA ===
 let tg=null,isTWA=false;
 function tryExpand(){try{if(tg&&tg.expand)tg.expand()}catch(e){}}
 try{tg=window.Telegram?.WebApp;if(tg){isTWA=true;tg.ready();tryExpand();setTimeout(tryExpand,100);setTimeout(tryExpand,300);setTimeout(tryExpand,700);setTimeout(tryExpand,1500);setTimeout(tryExpand,3000);tg.MainButton.setText('🔄 Новая игра');tg.MainButton.onClick(newGame)}}catch(e){}
@@ -207,8 +256,6 @@ function saveBestLocal(){if(score>best){best=score;localStorage.setItem('hex2048
 const LB_LOCAL_KEY='hex2048leaderboard';
 function loadLBLocal(){try{return JSON.parse(localStorage.getItem(LB_LOCAL_KEY)||'[]')}catch(e){return[]}}
 function saveLBLocal(nick,sc){const lb=loadLBLocal();lb.push({nick:nick.trim(),score:sc,radius:CURRENT_RADIUS,date:new Date().toLocaleDateString()});lb.sort((a,b)=>b.score-a.score);localStorage.setItem(LB_LOCAL_KEY,JSON.stringify(lb.slice(0,10)))}
-function renderLBRows(rows){const el=document.getElementById('leaderboard'),myId=getTgUserId();if(!rows||!rows.length){el.innerHTML='<div style="text-align:center;color:var(--text-sec);padding:.6em">Пока пусто</div>';return}let h='<div class="lb-header"><span>Игрок</span><span>Счёт</span></div>';rows.forEach((e,i)=>{const isMe=myId&&e.user_id===myId;h+='<div class="lb-row'+(i===0?' top1':'')+(isMe?' me':'')+'"><span>'+(i+1)+'. '+e.nick+' <small style="color:var(--text-sec)">('+e.radius+')</small></span><span>'+e.score+'</span></div>'});el.innerHTML=h}
-async function renderLeaderboard(){document.getElementById('leaderboard').innerHTML='<div class="lb-loading">Загрузка...</div>';const g=await loadLeaderboardGlobal();if(g){renderLBRows(g);return}renderLBRows(loadLBLocal())}
 
 // === СЕССИИ ===
 function sessionKey(r){return 'hex2048_session_'+r}
@@ -248,71 +295,76 @@ function spawnSparks(q,r,n=6){const p=hexToPixel(q,r);for(let i=0;i<n;i++){const
 function performNeighborMerges(pairs){SFX.cascade();haptic('medium');for(const[t1,t2]of pairs){t2.el.classList.add('consumed-neighbor');setTimeout(()=>{t2.el.remove();tiles.delete(t2.id)},250);const nv=t1.value*2;t1.value=nv;t1.el.textContent=nv;t1.el.dataset.value=nv;t1.el.classList.remove('neighbor-merged','big-flash');void t1.el.offsetWidth;t1.el.classList.add('neighbor-merged');if(nv>=256){t1.el.classList.add('big-flash');setTimeout(()=>t1.el.classList.remove('big-flash'),600)}spawnSparks(t1.q,t1.r,8);score+=nv}document.getElementById('score').textContent=score;saveBestLocal();for(const t of tiles.values())if(t.value>=2048&&!won){won=true;SFX.win();haptic('success');showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true);saveSession()}}
 function cascadeNeighborMerges(){const pairs=findNeighborPairs();if(pairs.length===0){addRandomTile();finishTurn();return}performNeighborMerges(pairs);setTimeout(cascadeNeighborMerges,300)}
 
-// === ПОДЕЛИТЬСЯ (со ссылкой на бота + 3 уровня fallback) ===
+// === ПОДЕЛИТЬСЯ ===
 const APP_LINK='https://t.me/hex2048_bot/play';
-
 function shareResult(){
   const cc=3*CURRENT_RADIUS*CURRENT_RADIUS+3*CURRENT_RADIUS+1;
   const text='🎮 Я набрал '+score+' очков в Hex2048 (поле '+CURRENT_RADIUS+', '+cc+' ячеек)!\nСможешь побить мой рекорд?\n\n🕹 Играть: '+APP_LINK;
-
   saveShareEvent(null);
-  console.log('[SHARE] isTWA:',isTWA,'tg:',!!tg,'score:',score);
-
-  // Уровень 1: switchInlineQuery
-  if(isTWA&&tg){
-    try{
-      console.log('[SHARE] Trying switchInlineQuery...');
-      tg.switchInlineQuery(text,['users','groups','channels']);
-      haptic('success');
-      console.log('[SHARE] ✅ switchInlineQuery called');
-      return;
-    }catch(e){console.warn('[SHARE] ❌ switchInlineQuery failed:',e.message||e)}
-  }
-
-  // Уровень 2: openTelegramLink (нативный шеринг Telegram)
-  if(isTWA&&tg){
-    try{
-      const shareUrl='https://t.me/share/url?url='+encodeURIComponent(APP_LINK)+'&text='+encodeURIComponent(text);
-      console.log('[SHARE] Trying openTelegramLink...');
-      tg.openTelegramLink(shareUrl);
-      haptic('success');
-      console.log('[SHARE] ✅ openTelegramLink called');
-      return;
-    }catch(e){console.warn('[SHARE] ❌ openTelegramLink failed:',e.message||e)}
-  }
-
-  // Уровень 3: Clipboard / prompt
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(text).then(()=>{
-      alert('✅ Результат скопирован!\nВставьте в любой чат.');
-    }).catch(()=>fallbackPrompt(text));
-    return;
-  }
+  if(isTWA&&tg){try{tg.switchInlineQuery(text,['users','groups','channels']);haptic('success');return}catch(e){}}
+  if(isTWA&&tg){try{tg.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(APP_LINK)+'&text='+encodeURIComponent(text));haptic('success');return}catch(e){}}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>alert('✅ Скопировано!')).catch(()=>fallbackPrompt(text));return}
   fallbackPrompt(text);
 }
-
-function fallbackPrompt(text){try{prompt('Скопируйте результат:',text)}catch(e){alert(text)}}
-
-// Привязка обеих кнопок
+function fallbackPrompt(text){try{prompt('Скопируйте:',text)}catch(e){alert(text)}}
 (function(){
-  var hdr=document.getElementById('shareHeaderBtn');
-  if(hdr){hdr.onclick=function(e){e.preventDefault();e.stopPropagation();shareResult()};hdr.ontouchstart=function(e){e.preventDefault();shareResult()}}
-  var ovl=document.getElementById('overlayShareBtn');
-  if(ovl){ovl.onclick=function(e){e.preventDefault();e.stopPropagation();shareResult()};ovl.ontouchstart=function(e){e.preventDefault();shareResult()}}
+  var hdr=document.getElementById('shareHeaderBtn');if(hdr){hdr.onclick=function(e){e.preventDefault();e.stopPropagation();shareResult()};hdr.ontouchstart=function(e){e.preventDefault();shareResult()}}
+  var ovl=document.getElementById('overlayShareBtn');if(ovl){ovl.onclick=function(e){e.preventDefault();e.stopPropagation();shareResult()};ovl.ontouchstart=function(e){e.preventDefault();shareResult()}}
 })();
 
-// === ОВЕРЛЕЙ ===
-function showOverlay(title,msg,keep){
+// === ОВЕРЛЕЙ GAME OVER ===
+async function showOverlay(title,msg,keep){
   document.getElementById('overlayTitle').textContent=title;document.getElementById('overlayMsg').textContent=msg;
   const form=document.getElementById('nickname-form'),input=document.getElementById('nickname-input'),btn=document.getElementById('overlayBtn');
   const shareBtn=document.getElementById('overlayShareBtn');
-  renderLeaderboard();
+  const lbEl=document.getElementById('gameOverLb');
+  
+  // Загружаем лидерборд текущего радиуса
+  lbEl.innerHTML='<div class="lb-loading">Загрузка...</div>';
+  const rows=await loadLeaderboard(CURRENT_RADIUS);
+  if(rows){renderLBRows(rows,lbEl)}else{renderLBRows(loadLBLocal(),lbEl)}
+  
   if(keep){form.style.display='none';shareBtn.style.display='';btn.textContent='Продолжить';btn.onclick=()=>document.getElementById('overlay').classList.remove('active')}
   else{shareBtn.style.display='';btn.textContent='Заново';btn.onclick=newGame;if(score>0){form.style.display='flex';input.value='';input.placeholder=getDefaultNick()+' (или свой)'}else form.style.display='none'}
   document.getElementById('overlay').classList.add('active');
 }
-document.getElementById('submit-nick').addEventListener('click',async()=>{const n=document.getElementById('nickname-input').value.trim();if(n){await saveScoreWithNick(n,score,CURRENT_RADIUS);saveLBLocal(n,score);submittedNick=true;document.getElementById('nickname-form').style.display='none';renderLeaderboard();haptic('success')}});
+document.getElementById('submit-nick').addEventListener('click',async()=>{const n=document.getElementById('nickname-input').value.trim();if(n){await saveScoreWithNick(n,score,CURRENT_RADIUS);saveLBLocal(n,score);submittedNick=true;document.getElementById('nickname-form').style.display='none';const rows=await loadLeaderboard(CURRENT_RADIUS);if(rows)renderLBRows(rows,document.getElementById('gameOverLb'));haptic('success')}});
 document.getElementById('nickname-input').addEventListener('keypress',e=>{if(e.key==='Enter')document.getElementById('submit-nick').click()});
+
+// === ОВЕРЛЕЙ ЧЕМПИОНОВ (НОВЫЙ) ===
+let trophyTab='current';
+const trophyOverlay=document.getElementById('trophyOverlay');
+const trophyLb=document.getElementById('trophyLb');
+const tabCurrent=document.getElementById('tabCurrent');
+const tabAll=document.getElementById('tabAll');
+
+async function openTrophy(){
+  trophyOverlay.classList.add('active');
+  trophyTab='current';
+  tabCurrent.classList.add('active');tabAll.classList.remove('active');
+  await loadTrophyLb();
+  haptic('light');
+}
+
+function closeTrophy(){trophyOverlay.classList.remove('active')}
+
+async function loadTrophyLb(){
+  trophyLb.innerHTML='<div class="lb-loading">Загрузка...</div>';
+  const radius=trophyTab==='current'?CURRENT_RADIUS:null;
+  const rows=await loadLeaderboard(radius);
+  if(rows){renderLBRows(rows,trophyLb)}
+  else{
+    // Fallback на локальные данные
+    const local=loadLBLocal();
+    const filtered=trophyTab==='current'?local.filter(e=>e.radius===CURRENT_RADIUS):local;
+    renderLBRows(filtered,trophyLb);
+  }
+}
+
+tabCurrent.onclick=async()=>{trophyTab='current';tabCurrent.classList.add('active');tabAll.classList.remove('active');await loadTrophyLb()};
+tabAll.onclick=async()=>{trophyTab='all';tabAll.classList.add('active');tabCurrent.classList.remove('active');await loadTrophyLb()};
+document.getElementById('trophyBtn').onclick=openTrophy;
+document.getElementById('trophyCloseBtn').onclick=closeTrophy;
 
 // === УПРАВЛЕНИЕ ===
 const pressed=new Set();let lastDir=-1;
