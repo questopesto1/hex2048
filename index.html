@@ -111,7 +111,6 @@
   <p id="overlayMsg">Попробуйте ещё раз</p>
   <div id="nickname-form"><input type="text" id="nickname-input" placeholder="Ваш ник" maxlength="12"><button class="btn" id="submit-nick" style="padding:.35em .7em;">✓</button></div>
   <div id="leaderboard"></div>
-  <!-- Кнопка поделиться внутри оверлея — надёжнее чем в хедере -->
   <button class="btn btn-share" id="overlayShareBtn">📤 Поделиться результатом</button>
   <button class="btn" id="overlayBtn">Заново</button>
 </div>
@@ -168,48 +167,30 @@ themeToggle.addEventListener('click',()=>{const c=document.documentElement.getAt
 
 document.addEventListener('touchmove',e=>{if(e.target.closest('#leaderboard')||e.target.closest('#nickname-input'))return;e.preventDefault()},{passive:false});
 
-// === TWA + АГРЕССИВНЫЙ EXPAND ===
+// === TWA + EXPAND ===
 let tg=null,isTWA=false;
 function tryExpand(){try{if(tg&&tg.expand)tg.expand()}catch(e){}}
 try{tg=window.Telegram?.WebApp;if(tg){isTWA=true;tg.ready();tryExpand();setTimeout(tryExpand,100);setTimeout(tryExpand,300);setTimeout(tryExpand,700);setTimeout(tryExpand,1500);setTimeout(tryExpand,3000);tg.MainButton.setText('🔄 Новая игра');tg.MainButton.onClick(newGame)}}catch(e){}
 function haptic(type){try{if(isTWA)tg.HapticFeedback.impactOccurred(type)}catch(e){}}
 
-// === МАСШТАБИРОВАНИЕ (БЕЗ renderEmptyGrid!) ===
+// === МАСШТАБИРОВАНИЕ ===
 const wrapper=document.getElementById('game-wrapper');
-function forceRecalcLayout(){
-  requestAnimationFrame(()=>{
-    updateContainerSize();
-    const empties=gridLayer.children;let idx=0;
-    for(const c of GRID){if(idx<empties.length)positionEl(empties[idx],c.q,c.r);idx++}
-    for(const t of tiles.values())positionEl(t.el,t.q,t.r);
-  });
-}
+function forceRecalcLayout(){requestAnimationFrame(()=>{updateContainerSize();const empties=gridLayer.children;let idx=0;for(const c of GRID){if(idx<empties.length)positionEl(empties[idx],c.q,c.r);idx++}for(const t of tiles.values())positionEl(t.el,t.q,t.r)})}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){tryExpand();setTimeout(forceRecalcLayout,200)}});
 if(isTWA){try{tg.onEvent('viewportChanged',()=>{tryExpand();setTimeout(forceRecalcLayout,100)})}catch(e){}}
-window.addEventListener('resize',forceRecalcLayout);
-window.addEventListener('orientationchange',()=>setTimeout(forceRecalcLayout,500));
+window.addEventListener('resize',forceRecalcLayout);window.addEventListener('orientationchange',()=>setTimeout(forceRecalcLayout,500));
 
 // === ИГРА ===
 const HEX_SIZE=35,HALF_W=35,HALF_H=30.31;let CURRENT_RADIUS=2,GRID=[],cx=0,cy=0;
 const DIRECTIONS=[{dq:0,dr:-1},{dq:1,dr:-1},{dq:1,dr:0},{dq:0,dr:1},{dq:-1,dr:1},{dq:-1,dr:0}];
 const key=(q,r)=>q+','+r;
-const container=document.getElementById('game-container');
-const gridLayer=document.getElementById('grid-layer');
-const tilesLayer=document.getElementById('tiles-layer');
+const container=document.getElementById('game-container'),gridLayer=document.getElementById('grid-layer'),tilesLayer=document.getElementById('tiles-layer');
 const tiles=new Map();let nextTileId=1,isAnimating=false,score=0,best=0,gameOver=false,won=false,submittedNick=false;
 const radiusSelect=document.getElementById('radiusSelect');
 
 function hexToPixel(q,r){return{x:HEX_SIZE*1.5*q,y:HEX_SIZE*Math.sqrt(3)*(r+q/2)}}
 function inGrid(q,r){return Math.abs(q)<=CURRENT_RADIUS&&Math.abs(r)<=CURRENT_RADIUS&&Math.abs(q+r)<=CURRENT_RADIUS}
-
-function buildGrid(r){
-  CURRENT_RADIUS=r;GRID=[];
-  for(let q=-r;q<=r;q++)for(let r2=-r;r2<=r;r2++)if(Math.abs(q+r2)<=r)GRID.push({q,r:r2});
-  updateContainerSize();
-  renderEmptyGrid();
-  loadBest();
-}
-
+function buildGrid(r){CURRENT_RADIUS=r;GRID=[];for(let q=-r;q<=r;q++)for(let r2=-r;r2<=r;r2++)if(Math.abs(q+r2)<=r)GRID.push({q,r:r2});updateContainerSize();renderEmptyGrid();loadBest()}
 function updateContainerSize(){
   let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
   for(const c of GRID){const p=hexToPixel(c.q,c.r);minX=Math.min(minX,p.x-HALF_W);maxX=Math.max(maxX,p.x+HALF_W);minY=Math.min(minY,p.y-HALF_H);maxY=Math.max(maxY,p.y+HALF_H)}
@@ -220,7 +201,6 @@ function updateContainerSize(){
   const scale=Math.max(0.2,Math.min(1.5,Math.min(availW/fieldW,availH/fieldH)));
   container.style.transform='scale('+scale+')';container.style.transformOrigin='center center';
 }
-
 function positionEl(el,q,r){const p=hexToPixel(q,r);el.style.left=(cx+p.x-HALF_W)+'px';el.style.top=(cy+p.y-HALF_H)+'px'}
 async function loadBest(){const lb=parseInt(localStorage.getItem('hex2048best_'+CURRENT_RADIUS)||'0');const gb=await getPersonalBest();best=Math.max(lb,gb||0);document.getElementById('best').textContent=best}
 function saveBestLocal(){if(score>best){best=score;localStorage.setItem('hex2048best_'+CURRENT_RADIUS,best);document.getElementById('best').textContent=best}}
@@ -234,14 +214,11 @@ async function renderLeaderboard(){document.getElementById('leaderboard').innerH
 function sessionKey(r){return 'hex2048_session_'+r}
 function saveSession(){const td=[];for(const t of tiles.values())td.push({q:t.q,r:t.r,value:t.value});localStorage.setItem(sessionKey(CURRENT_RADIUS),JSON.stringify({score,radius:CURRENT_RADIUS,gameOver,won,submittedNick,tiles:td,nextTileId}))}
 function clearLayers(){gridLayer.innerHTML='';tilesLayer.innerHTML='';tiles.clear()}
-
 function loadSessionForRadius(r){
   try{const raw=localStorage.getItem(sessionKey(r));if(!raw)return false;const s=JSON.parse(raw);
   if(!s.tiles||!Array.isArray(s.tiles)||s.tiles.length===0)return false;
-  clearLayers();
-  score=s.score||0;gameOver=!!s.gameOver;won=!!s.won;submittedNick=!!s.submittedNick;nextTileId=s.nextTileId||100;
-  document.getElementById('score').textContent=score;
-  buildGrid(r);
+  clearLayers();score=s.score||0;gameOver=!!s.gameOver;won=!!s.won;submittedNick=!!s.submittedNick;nextTileId=s.nextTileId||100;
+  document.getElementById('score').textContent=score;buildGrid(r);
   for(const td of s.tiles){const id=nextTileId++;const el=document.createElement('div');el.className='hex tile';el.dataset.value=td.value;el.textContent=td.value;positionEl(el,td.q,td.r);tilesLayer.appendChild(el);tiles.set(id,{id,value:td.value,q:td.q,r:td.r,el})}
   loadBest();document.getElementById('overlay').classList.remove('active');
   if(gameOver&&!won)setTimeout(()=>showOverlay('Игра окончена','Финальный счёт: '+score,false),300);
@@ -249,55 +226,15 @@ function loadSessionForRadius(r){
   return true}catch(e){console.warn('Load failed r='+r,e);return false}
 }
 function clearSessionForRadius(r){localStorage.removeItem(sessionKey(r))}
-
-function newGame(){
-  clearSessionForRadius(CURRENT_RADIUS);clearLayers();
-  nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;
-  document.getElementById('score').textContent='0';
-  document.getElementById('overlay').classList.remove('active');
-  document.getElementById('nickname-form').style.display='none';
-  buildGrid(parseInt(radiusSelect.value));
-  for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();
-  saveSession();haptic('light');
-}
-
-function switchRadius(newR){
-  if(tiles.size>0)saveSession();
-  const restored=loadSessionForRadius(newR);
-  if(!restored){
-    clearLayers();
-    nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;
-    document.getElementById('score').textContent='0';
-    document.getElementById('overlay').classList.remove('active');
-    document.getElementById('nickname-form').style.display='none';
-    buildGrid(newR);
-    for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();
-    saveSession();
-  }
-  haptic('light');
-}
-
-function renderEmptyGrid(){
-  gridLayer.innerHTML='';
-  for(const c of GRID){const el=document.createElement('div');el.className='hex empty';positionEl(el,c.q,c.r);gridLayer.appendChild(el)}
-}
-
+function newGame(){clearSessionForRadius(CURRENT_RADIUS);clearLayers();nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;document.getElementById('score').textContent='0';document.getElementById('overlay').classList.remove('active');document.getElementById('nickname-form').style.display='none';buildGrid(parseInt(radiusSelect.value));for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();saveSession();haptic('light')}
+function switchRadius(newR){if(tiles.size>0)saveSession();const restored=loadSessionForRadius(newR);if(!restored){clearLayers();nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;document.getElementById('score').textContent='0';document.getElementById('overlay').classList.remove('active');document.getElementById('nickname-form').style.display='none';buildGrid(newR);for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();saveSession()}haptic('light')}
+function renderEmptyGrid(){gridLayer.innerHTML='';for(const c of GRID){const el=document.createElement('div');el.className='hex empty';positionEl(el,c.q,c.r);gridLayer.appendChild(el)}}
 function emptyCells(){const occ=new Set();for(const t of tiles.values())occ.add(key(t.q,t.r));return GRID.filter(c=>!occ.has(key(c.q,c.r)))}
 function addTile(q,r,value){const id=nextTileId++;const el=document.createElement('div');el.className='hex tile new-tile';el.dataset.value=value;el.textContent=value;positionEl(el,q,r);tilesLayer.appendChild(el);const tile={id,value,q,r,el};tiles.set(id,tile);return tile}
 function addRandomTile(){const empty=emptyCells();if(!empty.length)return;const cell=empty[Math.floor(Math.random()*empty.length)];addTile(cell.q,cell.r,Math.random()<.9?2:4)}
 function getLines(dir){const{dq,dr}=DIRECTIONS[dir],lines={};for(const c of GRID){let lid;if(dir===0||dir===3)lid='q='+c.q;else if(dir===1||dir===4)lid='s='+(c.q+c.r);else lid='r='+c.r;if(!lines[lid])lines[lid]=[];lines[lid].push(c)}for(const k in lines)lines[k].sort((a,b)=>(a.q*dq+a.r*dr)-(b.q*dq+b.r*dr));return Object.values(lines)}
 function canStillPlay(){if(emptyCells().length>0)return true;const tl=Array.from(tiles.values());for(const t of tl)for(const d of DIRECTIONS){const nq=t.q+d.dq,nr=t.r+d.dr;if(!inGrid(nq,nr))continue;for(const o of tl)if(o.id!==t.id&&o.q===nq&&o.r===nr&&o.value===t.value)return true}return false}
-
-function finishTurn(){
-  saveSession();
-  if(!canStillPlay()){
-    gameOver=true;SFX.lose();haptic('error');saveBestLocal();
-    autoSaveScore(score,CURRENT_RADIUS);saveLBLocal(getDefaultNick(),score);
-    saveSession();setTimeout(()=>showOverlay('Игра окончена','Финальный счёт: '+score,false),350);
-  }
-  isAnimating=false;
-}
-
+function finishTurn(){saveSession();if(!canStillPlay()){gameOver=true;SFX.lose();haptic('error');saveBestLocal();autoSaveScore(score,CURRENT_RADIUS);saveLBLocal(getDefaultNick(),score);saveSession();setTimeout(()=>showOverlay('Игра окончена','Финальный счёт: '+score,false),350)}isAnimating=false}
 function move(dir){
   if(gameOver||isAnimating)return;const{dq,dr}=DIRECTIONS[dir],lines=getLines(dir);
   const vBoard=new Map();for(const t of tiles.values())vBoard.set(key(t.q,t.r),t.id);
@@ -311,14 +248,17 @@ function spawnSparks(q,r,n=6){const p=hexToPixel(q,r);for(let i=0;i<n;i++){const
 function performNeighborMerges(pairs){SFX.cascade();haptic('medium');for(const[t1,t2]of pairs){t2.el.classList.add('consumed-neighbor');setTimeout(()=>{t2.el.remove();tiles.delete(t2.id)},250);const nv=t1.value*2;t1.value=nv;t1.el.textContent=nv;t1.el.dataset.value=nv;t1.el.classList.remove('neighbor-merged','big-flash');void t1.el.offsetWidth;t1.el.classList.add('neighbor-merged');if(nv>=256){t1.el.classList.add('big-flash');setTimeout(()=>t1.el.classList.remove('big-flash'),600)}spawnSparks(t1.q,t1.r,8);score+=nv}document.getElementById('score').textContent=score;saveBestLocal();for(const t of tiles.values())if(t.value>=2048&&!won){won=true;SFX.win();haptic('success');showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true);saveSession()}}
 function cascadeNeighborMerges(){const pairs=findNeighborPairs();if(pairs.length===0){addRandomTile();finishTurn();return}performNeighborMerges(pairs);setTimeout(cascadeNeighborMerges,300)}
 
-// === ПОДЕЛИТЬСЯ (3 уровня fallback + диагностика) ===
+// === ПОДЕЛИТЬСЯ (со ссылкой на бота + 3 уровня fallback) ===
+const APP_LINK='https://t.me/hex2048_bot/play';
+
 function shareResult(){
   const cc=3*CURRENT_RADIUS*CURRENT_RADIUS+3*CURRENT_RADIUS+1;
-  const text='🎮 Я набрал '+score+' очков в Hex2048 (поле '+CURRENT_RADIUS+', '+cc+' ячеек)!\nСможешь побить мой рекорд?';
+  const text='🎮 Я набрал '+score+' очков в Hex2048 (поле '+CURRENT_RADIUS+', '+cc+' ячеек)!\nСможешь побить мой рекорд?\n\n🕹 Играть: '+APP_LINK;
+
   saveShareEvent(null);
   console.log('[SHARE] isTWA:',isTWA,'tg:',!!tg,'score:',score);
 
-  // Уровень 1: Telegram switchInlineQuery
+  // Уровень 1: switchInlineQuery
   if(isTWA&&tg){
     try{
       console.log('[SHARE] Trying switchInlineQuery...');
@@ -326,27 +266,34 @@ function shareResult(){
       haptic('success');
       console.log('[SHARE] ✅ switchInlineQuery called');
       return;
-    }catch(e){console.error('[SHARE] ❌ switchInlineQuery failed:',e.message||e)}
+    }catch(e){console.warn('[SHARE] ❌ switchInlineQuery failed:',e.message||e)}
   }
 
-  // Уровень 2: Clipboard API
+  // Уровень 2: openTelegramLink (нативный шеринг Telegram)
+  if(isTWA&&tg){
+    try{
+      const shareUrl='https://t.me/share/url?url='+encodeURIComponent(APP_LINK)+'&text='+encodeURIComponent(text);
+      console.log('[SHARE] Trying openTelegramLink...');
+      tg.openTelegramLink(shareUrl);
+      haptic('success');
+      console.log('[SHARE] ✅ openTelegramLink called');
+      return;
+    }catch(e){console.warn('[SHARE] ❌ openTelegramLink failed:',e.message||e)}
+  }
+
+  // Уровень 3: Clipboard / prompt
   if(navigator.clipboard&&navigator.clipboard.writeText){
-    console.log('[SHARE] Trying clipboard...');
     navigator.clipboard.writeText(text).then(()=>{
-      console.log('[SHARE] ✅ Clipboard OK');
       alert('✅ Результат скопирован!\nВставьте в любой чат.');
-    }).catch((e)=>{console.error('[SHARE] ❌ Clipboard failed:',e);fallbackPrompt(text)});
+    }).catch(()=>fallbackPrompt(text));
     return;
   }
-
-  // Уровень 3: prompt
-  console.log('[SHARE] Using prompt fallback');
   fallbackPrompt(text);
 }
 
 function fallbackPrompt(text){try{prompt('Скопируйте результат:',text)}catch(e){alert(text)}}
 
-// Привязка обеих кнопок поделиться
+// Привязка обеих кнопок
 (function(){
   var hdr=document.getElementById('shareHeaderBtn');
   if(hdr){hdr.onclick=function(e){e.preventDefault();e.stopPropagation();shareResult()};hdr.ontouchstart=function(e){e.preventDefault();shareResult()}}
@@ -360,14 +307,8 @@ function showOverlay(title,msg,keep){
   const form=document.getElementById('nickname-form'),input=document.getElementById('nickname-input'),btn=document.getElementById('overlayBtn');
   const shareBtn=document.getElementById('overlayShareBtn');
   renderLeaderboard();
-  if(keep){
-    form.style.display='none';shareBtn.style.display='';
-    btn.textContent='Продолжить';btn.onclick=()=>document.getElementById('overlay').classList.remove('active');
-  }else{
-    shareBtn.style.display='';
-    btn.textContent='Заново';btn.onclick=newGame;
-    if(score>0){form.style.display='flex';input.value='';input.placeholder=getDefaultNick()+' (или свой)'}else form.style.display='none';
-  }
+  if(keep){form.style.display='none';shareBtn.style.display='';btn.textContent='Продолжить';btn.onclick=()=>document.getElementById('overlay').classList.remove('active')}
+  else{shareBtn.style.display='';btn.textContent='Заново';btn.onclick=newGame;if(score>0){form.style.display='flex';input.value='';input.placeholder=getDefaultNick()+' (или свой)'}else form.style.display='none'}
   document.getElementById('overlay').classList.add('active');
 }
 document.getElementById('submit-nick').addEventListener('click',async()=>{const n=document.getElementById('nickname-input').value.trim();if(n){await saveScoreWithNick(n,score,CURRENT_RADIUS);saveLBLocal(n,score);submittedNick=true;document.getElementById('nickname-form').style.display='none';renderLeaderboard();haptic('success')}});
