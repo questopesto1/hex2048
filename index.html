@@ -10,18 +10,7 @@
   [data-theme="light"]{--bg:#faf8ef;--bg-grad:radial-gradient(ellipse at center,#fff 0%,#faf8ef 70%);--panel:#bbada0;--border:#a39489;--accent:#8f7a66;--text:#776e65;--text-sec:#a39489;--empty:#cdc1b4;--overlay:rgba(250,248,239,.95)}
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{width:100%;height:100%;overflow:hidden;overscroll-behavior:none;position:fixed;top:0;left:0;right:0;bottom:0;margin:0;padding:0}
-  body{
-    background:var(--bg-grad);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;
-    display:flex;flex-direction:column;align-items:center;
-    /* ИСПРАВЛЕНИЕ ПОЛНОЭКРАННОГО РЕЖИМА: flex-start + flex:1 у wrapper */
-    justify-content:flex-start;
-    user-select:none;-webkit-user-select:none;
-    padding-top:max(env(safe-area-inset-top),8px);
-    padding-bottom:max(env(safe-area-inset-bottom),8px);
-    padding-left:8px;padding-right:8px;
-    transition:background .3s,color .3s;
-    min-height:100vh;min-height:100dvh;height:100%;
-  }
+  body{background:var(--bg-grad);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;user-select:none;-webkit-user-select:none;padding-top:max(env(safe-area-inset-top),8px);padding-bottom:max(env(safe-area-inset-bottom),8px);padding-left:8px;padding-right:8px;transition:background .3s,color .3s;min-height:100vh;min-height:100dvh;height:100%}
   h1{font-size:1.8rem;margin:.2em 0;background:linear-gradient(135deg,var(--accent),#fc4a1a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:0}
   .header{display:flex;align-items:center;gap:.4em;margin-bottom:.3em;flex-wrap:wrap;justify-content:center;flex-shrink:0}
   .score-box{background:var(--panel);border:2px solid var(--border);border-radius:8px;padding:.2em .6em;text-align:center;min-width:55px;transition:background .3s,border-color .3s}
@@ -30,21 +19,13 @@
   .diff-select{background:var(--panel);color:var(--text);border:2px solid var(--border);padding:.2em .4em;border-radius:6px;font-size:.75rem;cursor:pointer;outline:none}
   .btn{background:linear-gradient(135deg,var(--accent),#fc4a1a);border:none;color:#fff;font-size:.75rem;font-weight:bold;padding:.3em .8em;border-radius:6px;cursor:pointer;transition:transform .15s}
   .btn:active{transform:scale(.95)}
+  .btn-share{background:linear-gradient(135deg,#6c5ce7,#a29bfe)!important;margin-bottom:.5em}
   .icon-btn{width:32px;height:32px;border-radius:6px;border:2px solid var(--border);background:var(--panel);color:var(--accent);font-size:1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .3s,background .3s,border-color .3s}
   .icon-btn:active{transform:scale(.9)}.icon-btn.muted{opacity:.5}.icon-btn.active{background:var(--accent);color:#1a1a2e;border-color:var(--accent)}
-
-  /* ИСПРАВЛЕНИЕ: wrapper занимает ВСЁ свободное пространство */
-  #game-wrapper{
-    flex:1;
-    width:100%;
-    min-height:0;
-    overflow:hidden;
-    display:flex;align-items:center;justify-content:center;
-  }
+  #game-wrapper{flex:1;width:100%;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
   #game-container{position:relative;flex-shrink:0}
   #grid-layer,#tiles-layer{position:absolute;inset:0;pointer-events:none}
   #grid-layer{z-index:0}#tiles-layer{z-index:1}
-
   .hex{position:absolute;width:70px;height:60.62px;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);display:flex;align-items:center;justify-content:center;font-size:1.15rem;font-weight:700;transition:left .18s ease-out,top .18s ease-out,background .2s;filter:drop-shadow(0 3px 2px rgba(0,0,0,.4)) drop-shadow(0 5px 5px rgba(0,0,0,.25))}
   .hex::before{content:'';position:absolute;inset:0;clip-path:inherit;background:linear-gradient(180deg,rgba(255,255,255,.45) 0%,rgba(255,255,255,.08) 40%,transparent 55%,rgba(0,0,0,.2) 100%);pointer-events:none}
   .hex::after{content:'';position:absolute;inset:4px;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);background:linear-gradient(135deg,rgba(255,255,255,.2) 0%,transparent 60%);pointer-events:none}
@@ -82,13 +63,11 @@
   @keyframes flashOverlay{0%{background:rgba(255,255,255,.95)}100%{background:linear-gradient(180deg,rgba(255,255,255,.45) 0%,rgba(255,255,255,.08) 40%,transparent 55%,rgba(0,0,0,.2) 100%)}}
   .spark{position:absolute;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle,#fff,#ffd54f);pointer-events:none;z-index:10;animation:sparkFly .6s ease-out forwards}
   @keyframes sparkFly{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(0);opacity:0}}
-
   .mobile-controls{display:none;margin-top:.3em;gap:3px;grid-template-columns:repeat(3,var(--btn-size,48px));grid-template-rows:repeat(2,var(--btn-size,48px));justify-content:center;align-items:center;flex-shrink:0}
   .mobile-controls button{width:var(--btn-size,48px);height:var(--btn-size,48px);font-size:1rem;background:var(--panel);border:2px solid var(--border);color:var(--accent);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
   .mobile-controls button:active{background:var(--border);transform:scale(.92)}
   .mc-up{grid-column:2;grid-row:1}.mc-nw{grid-column:1;grid-row:1}.mc-ne{grid-column:3;grid-row:1}
   .mc-sw{grid-column:1;grid-row:2}.mc-down{grid-column:2;grid-row:2}.mc-se{grid-column:3;grid-row:2}
-
   .overlay{position:absolute;inset:0;background:var(--overlay);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;border-radius:16px;opacity:0;pointer-events:none;transition:opacity .35s;padding:1.5em}
   .overlay.active{opacity:1;pointer-events:all}
   .overlay h2{font-size:1.6rem;margin-bottom:.3em;background:linear-gradient(135deg,var(--accent),#fc4a1a);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
@@ -102,7 +81,6 @@
   .lb-row:hover{background:rgba(247,183,51,.1)}.lb-row.top1{color:var(--accent);font-weight:bold}
   .lb-row.me{background:rgba(247,183,51,.15);border:1px solid var(--accent)}
   .lb-loading{text-align:center;color:var(--text-sec);padding:.6em}
-
   @media(hover:none) and (pointer:coarse){.mobile-controls{display:grid}}
   @media(max-width:600px){h1{font-size:1.4rem;margin:.15em 0}.header{gap:.3em;margin-bottom:.2em}.score-box{padding:.15em .4em;min-width:45px}.score-box .value{font-size:1rem}.mobile-controls{--btn-size:40px;gap:2px;margin-top:.2em}}
   @media(max-height:700px){h1{font-size:1.3rem;margin:.1em 0}.header{margin-bottom:.15em}.mobile-controls{--btn-size:36px;gap:2px;margin-top:.1em}}
@@ -123,25 +101,18 @@
   <button class="icon-btn" id="soundToggle" aria-label="Звук">🔊</button>
   <button class="icon-btn" id="themeToggle" aria-label="Тема">🌙</button>
 </div>
-
-<!-- Обёртка с flex:1 гарантирует заполнение всего экрана -->
-<div id="game-wrapper">
-  <div id="game-container">
-    <div id="grid-layer"></div>
-    <div id="tiles-layer"></div>
-  </div>
-</div>
-
+<div id="game-wrapper"><div id="game-container"><div id="grid-layer"></div><div id="tiles-layer"></div></div></div>
 <div class="mobile-controls">
   <button class="mc-nw" data-dir="5">↖</button><button class="mc-up" data-dir="0">↑</button><button class="mc-ne" data-dir="1">↗</button>
   <button class="mc-sw" data-dir="4">↙</button><button class="mc-down" data-dir="3">↓</button><button class="mc-se" data-dir="2">↘</button>
 </div>
-
 <div class="overlay" id="overlay">
   <h2 id="overlayTitle">Игра окончена!</h2>
   <p id="overlayMsg">Попробуйте ещё раз</p>
   <div id="nickname-form"><input type="text" id="nickname-input" placeholder="Ваш ник" maxlength="12"><button class="btn" id="submit-nick" style="padding:.35em .7em;">✓</button></div>
   <div id="leaderboard"></div>
+  <!-- Кнопка поделиться внутри оверлея — надёжнее чем в хедере -->
+  <button class="btn btn-share" id="overlayShareBtn">📤 Поделиться результатом</button>
   <button class="btn" id="overlayBtn">Заново</button>
 </div>
 
@@ -208,7 +179,6 @@ const wrapper=document.getElementById('game-wrapper');
 function forceRecalcLayout(){
   requestAnimationFrame(()=>{
     updateContainerSize();
-    // Только перепозиционируем существующие DOM-элементы
     const empties=gridLayer.children;let idx=0;
     for(const c of GRID){if(idx<empties.length)positionEl(empties[idx],c.q,c.r);idx++}
     for(const t of tiles.values())positionEl(t.el,t.q,t.r);
@@ -232,7 +202,6 @@ const radiusSelect=document.getElementById('radiusSelect');
 function hexToPixel(q,r){return{x:HEX_SIZE*1.5*q,y:HEX_SIZE*Math.sqrt(3)*(r+q/2)}}
 function inGrid(q,r){return Math.abs(q)<=CURRENT_RADIUS&&Math.abs(r)<=CURRENT_RADIUS&&Math.abs(q+r)<=CURRENT_RADIUS}
 
-// ЕДИНСТВЕННОЕ место создания фона
 function buildGrid(r){
   CURRENT_RADIUS=r;GRID=[];
   for(let q=-r;q<=r;q++)for(let r2=-r;r2<=r;r2++)if(Math.abs(q+r2)<=r)GRID.push({q,r:r2});
@@ -264,17 +233,15 @@ async function renderLeaderboard(){document.getElementById('leaderboard').innerH
 // === СЕССИИ ===
 function sessionKey(r){return 'hex2048_session_'+r}
 function saveSession(){const td=[];for(const t of tiles.values())td.push({q:t.q,r:t.r,value:t.value});localStorage.setItem(sessionKey(CURRENT_RADIUS),JSON.stringify({score,radius:CURRENT_RADIUS,gameOver,won,submittedNick,tiles:td,nextTileId}))}
-
-// ИСПРАВЛЕНИЕ ДВОЙНОГО ПОЛЯ: полная очистка ПЕРЕД любой отрисовкой
 function clearLayers(){gridLayer.innerHTML='';tilesLayer.innerHTML='';tiles.clear()}
 
 function loadSessionForRadius(r){
   try{const raw=localStorage.getItem(sessionKey(r));if(!raw)return false;const s=JSON.parse(raw);
   if(!s.tiles||!Array.isArray(s.tiles)||s.tiles.length===0)return false;
-  clearLayers(); // ← КРИТИЧНО: удаляем ВСЁ перед загрузкой
+  clearLayers();
   score=s.score||0;gameOver=!!s.gameOver;won=!!s.won;submittedNick=!!s.submittedNick;nextTileId=s.nextTileId||100;
   document.getElementById('score').textContent=score;
-  buildGrid(r); // Создаёт фон ОДИН раз с правильными cx/cy
+  buildGrid(r);
   for(const td of s.tiles){const id=nextTileId++;const el=document.createElement('div');el.className='hex tile';el.dataset.value=td.value;el.textContent=td.value;positionEl(el,td.q,td.r);tilesLayer.appendChild(el);tiles.set(id,{id,value:td.value,q:td.q,r:td.r,el})}
   loadBest();document.getElementById('overlay').classList.remove('active');
   if(gameOver&&!won)setTimeout(()=>showOverlay('Игра окончена','Финальный счёт: '+score,false),300);
@@ -310,7 +277,6 @@ function switchRadius(newR){
   haptic('light');
 }
 
-// Фон создаётся ТОЛЬКО здесь
 function renderEmptyGrid(){
   gridLayer.innerHTML='';
   for(const c of GRID){const el=document.createElement('div');el.className='hex empty';positionEl(el,c.q,c.r);gridLayer.appendChild(el)}
@@ -345,53 +311,63 @@ function spawnSparks(q,r,n=6){const p=hexToPixel(q,r);for(let i=0;i<n;i++){const
 function performNeighborMerges(pairs){SFX.cascade();haptic('medium');for(const[t1,t2]of pairs){t2.el.classList.add('consumed-neighbor');setTimeout(()=>{t2.el.remove();tiles.delete(t2.id)},250);const nv=t1.value*2;t1.value=nv;t1.el.textContent=nv;t1.el.dataset.value=nv;t1.el.classList.remove('neighbor-merged','big-flash');void t1.el.offsetWidth;t1.el.classList.add('neighbor-merged');if(nv>=256){t1.el.classList.add('big-flash');setTimeout(()=>t1.el.classList.remove('big-flash'),600)}spawnSparks(t1.q,t1.r,8);score+=nv}document.getElementById('score').textContent=score;saveBestLocal();for(const t of tiles.values())if(t.value>=2048&&!won){won=true;SFX.win();haptic('success');showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true);saveSession()}}
 function cascadeNeighborMerges(){const pairs=findNeighborPairs();if(pairs.length===0){addRandomTile();finishTurn();return}performNeighborMerges(pairs);setTimeout(cascadeNeighborMerges,300)}
 
-// === ПОДЕЛИТЬСЯ (ИСПРАВЛЕНО: 3 уровня fallback) ===
+// === ПОДЕЛИТЬСЯ (3 уровня fallback + диагностика) ===
 function shareResult(){
   const cc=3*CURRENT_RADIUS*CURRENT_RADIUS+3*CURRENT_RADIUS+1;
   const text='🎮 Я набрал '+score+' очков в Hex2048 (поле '+CURRENT_RADIUS+', '+cc+' ячеек)!\nСможешь побить мой рекорд?';
   saveShareEvent(null);
+  console.log('[SHARE] isTWA:',isTWA,'tg:',!!tg,'score:',score);
 
   // Уровень 1: Telegram switchInlineQuery
   if(isTWA&&tg){
     try{
+      console.log('[SHARE] Trying switchInlineQuery...');
       tg.switchInlineQuery(text,['users','groups','channels']);
       haptic('success');
+      console.log('[SHARE] ✅ switchInlineQuery called');
       return;
-    }catch(e){console.warn('switchInlineQuery error:',e)}
+    }catch(e){console.error('[SHARE] ❌ switchInlineQuery failed:',e.message||e)}
   }
 
   // Уровень 2: Clipboard API
   if(navigator.clipboard&&navigator.clipboard.writeText){
+    console.log('[SHARE] Trying clipboard...');
     navigator.clipboard.writeText(text).then(()=>{
+      console.log('[SHARE] ✅ Clipboard OK');
       alert('✅ Результат скопирован!\nВставьте в любой чат.');
-    }).catch(()=>fallbackPrompt(text));
+    }).catch((e)=>{console.error('[SHARE] ❌ Clipboard failed:',e);fallbackPrompt(text)});
     return;
   }
 
   // Уровень 3: prompt
+  console.log('[SHARE] Using prompt fallback');
   fallbackPrompt(text);
 }
 
-function fallbackPrompt(text){
-  try{prompt('Скопируйте результат:',text)}catch(e){alert(text)}
-}
+function fallbackPrompt(text){try{prompt('Скопируйте результат:',text)}catch(e){alert(text)}}
 
-// Привязка кнопки через IIFE для гарантии готовности DOM
+// Привязка обеих кнопок поделиться
 (function(){
-  var btn=document.getElementById('shareHeaderBtn');
-  if(btn){
-    btn.onclick=function(e){e.preventDefault();e.stopPropagation();shareResult()};
-    btn.ontouchstart=function(e){e.preventDefault();shareResult()};
-  }
+  var hdr=document.getElementById('shareHeaderBtn');
+  if(hdr){hdr.onclick=function(e){e.preventDefault();e.stopPropagation();shareResult()};hdr.ontouchstart=function(e){e.preventDefault();shareResult()}}
+  var ovl=document.getElementById('overlayShareBtn');
+  if(ovl){ovl.onclick=function(e){e.preventDefault();e.stopPropagation();shareResult()};ovl.ontouchstart=function(e){e.preventDefault();shareResult()}}
 })();
 
 // === ОВЕРЛЕЙ ===
 function showOverlay(title,msg,keep){
   document.getElementById('overlayTitle').textContent=title;document.getElementById('overlayMsg').textContent=msg;
   const form=document.getElementById('nickname-form'),input=document.getElementById('nickname-input'),btn=document.getElementById('overlayBtn');
+  const shareBtn=document.getElementById('overlayShareBtn');
   renderLeaderboard();
-  if(keep){form.style.display='none';btn.textContent='Продолжить';btn.onclick=()=>document.getElementById('overlay').classList.remove('active')}
-  else{btn.textContent='Заново';btn.onclick=newGame;if(score>0){form.style.display='flex';input.value='';input.placeholder=getDefaultNick()+' (или свой)'}else form.style.display='none'}
+  if(keep){
+    form.style.display='none';shareBtn.style.display='';
+    btn.textContent='Продолжить';btn.onclick=()=>document.getElementById('overlay').classList.remove('active');
+  }else{
+    shareBtn.style.display='';
+    btn.textContent='Заново';btn.onclick=newGame;
+    if(score>0){form.style.display='flex';input.value='';input.placeholder=getDefaultNick()+' (или свой)'}else form.style.display='none';
+  }
   document.getElementById('overlay').classList.add('active');
 }
 document.getElementById('submit-nick').addEventListener('click',async()=>{const n=document.getElementById('nickname-input').value.trim();if(n){await saveScoreWithNick(n,score,CURRENT_RADIUS);saveLBLocal(n,score);submittedNick=true;document.getElementById('nickname-form').style.display='none';renderLeaderboard();haptic('success')}});
