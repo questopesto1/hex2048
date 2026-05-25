@@ -25,8 +25,7 @@
     padding-top:max(env(safe-area-inset-top),8px);
     padding-bottom:max(env(safe-area-inset-bottom),8px);
     padding-left:8px;padding-right:8px;
-    transition:background .3s,color .3s;
-    min-height:100vh;min-height:100dvh;height:100%;
+    transition:background .3s,color .3s;min-height:100vh;min-height:100dvh;height:100%;
   }
   h1{font-size:1.8rem;margin:.2em 0;background:linear-gradient(135deg,var(--accent),#fc4a1a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:0}
   .header{display:flex;align-items:center;gap:.4em;margin-bottom:.3em;flex-wrap:wrap;justify-content:center;flex-shrink:0}
@@ -129,10 +128,16 @@
 <h1>⬡ Hex 2048</h1>
 <div class="header">
   <div class="score-box"><div class="label">Счёт</div><div class="value" id="score">0</div></div>
-  <select class="diff-select" id="radiusSelect"><option value="3">3</option><option value="4" selected>4</option><option value="5">5</option><option value="6">6</option></select>
+  <!-- Диапазон радиусов 2-6, подписи = кол-во ячеек -->
+  <select class="diff-select" id="radiusSelect">
+    <option value="2" selected>19</option>
+    <option value="3">37</option>
+    <option value="4">61</option>
+    <option value="5">91</option>
+    <option value="6">127</option>
+  </select>
   <button class="btn" id="newGameBtn">Новая</button>
   <div class="score-box"><div class="label">Рекорд</div><div class="value" id="best">0</div></div>
-  <!-- Кнопка Магнит: каскадное слияние соседей -->
   <button class="icon-btn active" id="magnetToggle" aria-label="Магнит" title="Каскадное слияние соседей">🧲</button>
   <button class="icon-btn" id="soundToggle" aria-label="Звук">🔊</button>
   <button class="icon-btn" id="themeToggle" aria-label="Тема">🌙</button>
@@ -170,17 +175,12 @@ async function saveScoreGlobal(nick,sc,radius){const uid=getTgUserId();if(!supab
 async function loadLeaderboardGlobal(){if(!supabaseClient)return null;try{const{data,error}=await supabaseClient.from('leaderboard').select('nick,score,radius,user_id').order('score',{ascending:false}).limit(10);if(error)return null;return data}catch(e){return null}}
 async function getPersonalBest(){const uid=getTgUserId();if(!supabaseClient||!uid)return null;try{const{data,error}=await supabaseClient.from('leaderboard').select('score').eq('user_id',uid).order('score',{ascending:false}).limit(1);if(error||!data||!data.length)return null;return data[0].score}catch(e){return null}}
 
-// === МАГНИТ (каскадное слияние соседей) ===
+// === МАГНИТ ===
 const MAGNET_KEY='hex2048_magnet';
 let magnetEnabled=localStorage.getItem(MAGNET_KEY)!=='false';
 const magnetToggle=document.getElementById('magnetToggle');
 function updateMagnetIcon(){magnetToggle.classList.toggle('active',magnetEnabled)}
-magnetToggle.addEventListener('click',()=>{
-  magnetEnabled=!magnetEnabled;
-  localStorage.setItem(MAGNET_KEY,magnetEnabled);
-  updateMagnetIcon();
-  haptic('light');
-});
+magnetToggle.addEventListener('click',()=>{magnetEnabled=!magnetEnabled;localStorage.setItem(MAGNET_KEY,magnetEnabled);updateMagnetIcon();haptic('light')});
 updateMagnetIcon();
 
 // === ЗВУК ===
@@ -202,23 +202,10 @@ themeToggle.addEventListener('click',()=>{const c=document.documentElement.getAt
 // === БЛОКИРОВКА СВАЙПОВ ===
 document.addEventListener('touchmove',e=>{if(e.target.closest('#leaderboard')||e.target.closest('#nickname-input'))return;e.preventDefault()},{passive:false});
 
-// === TWA + АГРЕССИВНЫЙ ПОЛНОЭКРАННЫЙ РЕЖИМ ===
+// === TWA ===
 let tg=null,isTWA=false;
 function tryExpand(){try{if(tg&&tg.expand)tg.expand()}catch(e){}}
-try{
-  tg=window.Telegram?.WebApp;
-  if(tg){
-    isTWA=true;tg.ready();
-    // 5 попыток expand с разными задержками — фикс для Android
-    tryExpand();
-    setTimeout(tryExpand,200);
-    setTimeout(tryExpand,500);
-    setTimeout(tryExpand,1000);
-    setTimeout(tryExpand,2000);
-    tg.MainButton.setText('🔄 Новая игра');
-    tg.MainButton.onClick(resetGame);
-  }
-}catch(e){}
+try{tg=window.Telegram?.WebApp;if(tg){isTWA=true;tg.ready();tryExpand();setTimeout(tryExpand,200);setTimeout(tryExpand,500);setTimeout(tryExpand,1000);setTimeout(tryExpand,2000);tg.MainButton.setText('🔄 Новая игра');tg.MainButton.onClick(resetGame)}}catch(e){}
 function haptic(type){try{if(isTWA)tg.HapticFeedback.impactOccurred(type)}catch(e){}}
 
 // === МАСШТАБИРОВАНИЕ ===
@@ -230,7 +217,8 @@ window.addEventListener('resize',forceRecalcLayout);
 window.addEventListener('orientationchange',()=>setTimeout(forceRecalcLayout,500));
 
 // === ИГРА ===
-const HEX_SIZE=35,HALF_W=35,HALF_H=30.31;let CURRENT_RADIUS=4,GRID=[],cx=0,cy=0;
+const HEX_SIZE=35,HALF_W=35,HALF_H=30.31;
+let CURRENT_RADIUS=2,GRID=[],cx=0,cy=0;
 const DIRECTIONS=[{dq:0,dr:-1},{dq:1,dr:-1},{dq:1,dr:0},{dq:0,dr:1},{dq:-1,dr:1},{dq:-1,dr:0}];
 const key=(q,r)=>q+','+r;
 const container=document.getElementById('game-container'),gridLayer=document.getElementById('grid-layer'),tilesLayer=document.getElementById('tiles-layer');
@@ -246,7 +234,7 @@ function updateContainerSize(){
   const fieldW=Math.ceil(maxX-minX+40),fieldH=Math.ceil(maxY-minY+40);
   container.style.width=fieldW+'px';container.style.height=fieldH+'px';cx=fieldW/2;cy=fieldH/2;
   const wr=wrapper.getBoundingClientRect();
-  const availW=wr.width-4;const availH=wr.height-4;
+  const availW=wr.width-4,availH=wr.height-4;
   if(availW<=0||availH<=0)return;
   const scale=Math.max(0.2,Math.min(1.5,Math.min(availW/fieldW,availH/fieldH)));
   container.style.transform='scale('+scale+')';container.style.transformOrigin='center center';
@@ -277,7 +265,6 @@ function move(dir){
   for(const line of lines){let lastId=null;for(const cell of line){const k=key(cell.q,cell.r),tid=vBoard.get(k);if(tid===undefined)continue;const tile=tiles.get(tid);let tq=cell.q,tr=cell.r,mergeWith=null;while(true){const nq=tq+dq,nr=tr+dr;if(!inGrid(nq,nr))break;const nk=key(nq,nr);if(!vBoard.has(nk)){tq=nq;tr=nr}else{const bid=vBoard.get(nk),b=tiles.get(bid),bv=mergedInto.has(bid)?merges.find(m=>m.survivorId===bid)?.newValue||b.value:b.value;if(bv===tile.value&&!mergedInto.has(bid)&&bid!==lastId){mergeWith=bid;tq=nq;tr=nr}break}}if(mergeWith!==null){merges.push({survivorId:mergeWith,consumedId:tid,newValue:tile.value*2});mergedInto.add(mergeWith);vBoard.delete(k);tile.q=tq;tile.r=tr;positionEl(tile.el,tq,tr);moved=true;lastId=mergeWith}else{if(tq!==cell.q||tr!==cell.r)moved=true;vBoard.delete(k);vBoard.set(key(tq,tr),tid);tile.q=tq;tile.r=tr;positionEl(tile.el,tq,tr);lastId=tid}}}
   if(!moved&&merges.length===0)return;isAnimating=true;SFX.move();haptic(merges.length>0?'heavy':'light');
   setTimeout(()=>{for(const mg of merges){const s=tiles.get(mg.survivorId),c=tiles.get(mg.consumedId);if(c){c.el.remove();tiles.delete(mg.consumedId)}s.value=mg.newValue;s.el.textContent=mg.newValue;s.el.dataset.value=mg.newValue;s.el.classList.remove('merged-tile','big-flash');void s.el.offsetWidth;s.el.classList.add('merged-tile');SFX.merge(mg.newValue);if(mg.newValue>=256){s.el.classList.add('big-flash');setTimeout(()=>s.el.classList.remove('big-flash'),600);haptic('rigid')}score+=mg.newValue}document.getElementById('score').textContent=score;saveBestLocal();for(const t of tiles.values())if(t.value>=2048&&!won){won=true;SFX.win();haptic('success');showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true)}
-  // Каскад только если Магнит включён
   if(magnetEnabled){cascadeNeighborMerges()}else{addRandomTile();if(isGameOver()){gameOver=true;SFX.lose();haptic('error');setTimeout(()=>showOverlay('Игра окончена','Финальный счёт: '+score,false),350)}isAnimating=false}},190);
 }
 
@@ -309,7 +296,8 @@ document.querySelectorAll('.mobile-controls button').forEach(btn=>{btn.addEventL
 document.getElementById('radiusSelect').addEventListener('change',e=>{buildGrid(parseInt(e.target.value));resetGame()});
 document.getElementById('newGameBtn').addEventListener('click',resetGame);
 
-initTheme();initSupabase();buildGrid(4);resetGame();
+// Запуск с радиусом 2 (19 ячеек)
+initTheme();initSupabase();buildGrid(2);resetGame();
 window.addEventListener('load',()=>{setTimeout(forceRecalcLayout,100);setTimeout(forceRecalcLayout,500);setTimeout(forceRecalcLayout,1500)});
 </script>
 </body>
