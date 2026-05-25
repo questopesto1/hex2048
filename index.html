@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Hex2048</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- Supabase загружается как обычный скрипт — надёжнее чем dynamic import -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root {
     --bg:#1a1a2e;--bg-grad:radial-gradient(ellipse at center,#232347 0%,#1a1a2e 70%);
@@ -19,25 +17,29 @@
     --text:#776e65;--text-sec:#a39489;--empty:#cdc1b4;--overlay:rgba(250,248,239,.95);
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html,body{width:100%;height:100%;overflow:hidden;overscroll-behavior:none;position:fixed;top:0;left:0;right:0;bottom:0}
+  html,body{width:100%;height:100%;overflow:hidden;overscroll-behavior:none;position:fixed;top:0;left:0;right:0;bottom:0;margin:0;padding:0}
   body{
     background:var(--bg-grad);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;
     display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
     user-select:none;-webkit-user-select:none;
-    padding:calc(env(safe-area-inset-top) + 10px) 10px calc(env(safe-area-inset-bottom) + 10px);
-    transition:background .3s,color .3s;min-height:100vh;min-height:100dvh;
+    padding-top:max(env(safe-area-inset-top),8px);
+    padding-bottom:max(env(safe-area-inset-bottom),8px);
+    padding-left:8px;padding-right:8px;
+    transition:background .3s,color .3s;min-height:100vh;min-height:100dvh;height:100%;
   }
-  h1{font-size:2rem;margin:.3em 0;background:linear-gradient(135deg,var(--accent),#fc4a1a);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-  .header{display:flex;align-items:center;gap:.5em;margin-bottom:.8em;flex-wrap:wrap;justify-content:center}
-  .score-box{background:var(--panel);border:2px solid var(--border);border-radius:10px;padding:.25em .7em;text-align:center;min-width:60px;transition:background .3s,border-color .3s}
-  .score-box .label{font-size:.55rem;color:var(--text-sec);text-transform:uppercase;letter-spacing:1px}
-  .score-box .value{font-size:1.2rem;font-weight:bold;color:var(--accent)}
-  .diff-select{background:var(--panel);color:var(--text);border:2px solid var(--border);padding:.25em .5em;border-radius:8px;font-size:.8rem;cursor:pointer;outline:none}
-  .btn{background:linear-gradient(135deg,var(--accent),#fc4a1a);border:none;color:#fff;font-size:.8rem;font-weight:bold;padding:.35em .9em;border-radius:8px;cursor:pointer;transition:transform .15s}
+  h1{font-size:1.8rem;margin:.2em 0;background:linear-gradient(135deg,var(--accent),#fc4a1a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:0}
+  .header{display:flex;align-items:center;gap:.4em;margin-bottom:.4em;flex-wrap:wrap;justify-content:center;flex-shrink:0}
+  .score-box{background:var(--panel);border:2px solid var(--border);border-radius:8px;padding:.2em .6em;text-align:center;min-width:55px;transition:background .3s,border-color .3s}
+  .score-box .label{font-size:.5rem;color:var(--text-sec);text-transform:uppercase;letter-spacing:1px}
+  .score-box .value{font-size:1.1rem;font-weight:bold;color:var(--accent)}
+  .diff-select{background:var(--panel);color:var(--text);border:2px solid var(--border);padding:.2em .4em;border-radius:6px;font-size:.75rem;cursor:pointer;outline:none}
+  .btn{background:linear-gradient(135deg,var(--accent),#fc4a1a);border:none;color:#fff;font-size:.75rem;font-weight:bold;padding:.3em .8em;border-radius:6px;cursor:pointer;transition:transform .15s}
   .btn:active{transform:scale(.95)}
-  .icon-btn{width:36px;height:36px;border-radius:8px;border:2px solid var(--border);background:var(--panel);color:var(--accent);font-size:1.1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .3s}
+  .icon-btn{width:32px;height:32px;border-radius:6px;border:2px solid var(--border);background:var(--panel);color:var(--accent);font-size:1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .3s}
   .icon-btn:active{transform:scale(.9)}.icon-btn.muted{opacity:.5}
 
+  /* Обёртка растягивается на всё свободное пространство */
+  #game-wrapper{flex:1;display:flex;align-items:center;justify-content:center;width:100%;overflow:hidden;min-height:0}
   #game-container{position:relative;flex-shrink:0}
   #grid-layer,#tiles-layer{position:absolute;inset:0;pointer-events:none}
   #grid-layer{z-index:0}#tiles-layer{z-index:1}
@@ -82,8 +84,9 @@
   .spark{position:absolute;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle,#fff,#ffd54f);pointer-events:none;z-index:10;animation:sparkFly .6s ease-out forwards}
   @keyframes sparkFly{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(0);opacity:0}}
 
-  .mobile-controls{display:none;margin-top:.6em;gap:4px;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(2,48px);justify-content:center;align-items:center;flex-shrink:0}
-  .mobile-controls button{width:48px;height:48px;font-size:1.1rem;background:var(--panel);border:2px solid var(--border);color:var(--accent);border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
+  /* Кнопки управления — адаптивный размер */
+  .mobile-controls{display:none;margin-top:.3em;gap:3px;grid-template-columns:repeat(3,var(--btn-size,48px));grid-template-rows:repeat(2,var(--btn-size,48px));justify-content:center;align-items:center;flex-shrink:0}
+  .mobile-controls button{width:var(--btn-size,48px);height:var(--btn-size,48px);font-size:1rem;background:var(--panel);border:2px solid var(--border);color:var(--accent);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
   .mobile-controls button:active{background:var(--border);transform:scale(.92)}
   .mc-up{grid-column:2;grid-row:1}.mc-nw{grid-column:1;grid-row:1}.mc-ne{grid-column:3;grid-row:1}
   .mc-sw{grid-column:1;grid-row:2}.mc-down{grid-column:2;grid-row:2}.mc-se{grid-column:3;grid-row:2}
@@ -101,10 +104,24 @@
   .lb-row:hover{background:rgba(247,183,51,.1)}.lb-row.top1{color:var(--accent);font-weight:bold}
   .lb-row.me{background:rgba(247,183,51,.15);border:1px solid var(--accent)}
   .lb-loading{text-align:center;color:var(--text-sec);padding:.6em}
-  #db-status{font-size:.6rem;color:var(--text-sec);margin-top:.3em;text-align:center;opacity:.7}
 
   @media(hover:none) and (pointer:coarse){.mobile-controls{display:grid}}
-  @media(max-width:600px){h1{font-size:1.6rem}.header{gap:.4em}.score-box{padding:.2em .5em;min-width:50px}}
+  @media(max-width:600px){
+    h1{font-size:1.4rem;margin:.15em 0}
+    .header{gap:.3em;margin-bottom:.3em}
+    .score-box{padding:.15em .4em;min-width:45px}
+    .score-box .value{font-size:1rem}
+    .mobile-controls{--btn-size:40px;gap:2px;margin-top:.2em}
+  }
+  @media(max-height:700px){
+    h1{font-size:1.3rem;margin:.1em 0}
+    .header{margin-bottom:.2em}
+    .mobile-controls{--btn-size:36px;gap:2px;margin-top:.15em}
+  }
+  @media(max-height:600px){
+    .mobile-controls{--btn-size:32px;gap:1px;margin-top:.1em}
+    .mobile-controls button{font-size:.85rem;border-width:1px}
+  }
 </style>
 </head>
 <body>
@@ -117,12 +134,16 @@
   <button class="icon-btn" id="soundToggle" aria-label="Звук">🔊</button>
   <button class="icon-btn" id="themeToggle" aria-label="Тема">🌙</button>
 </div>
-<div id="game-container"><div id="grid-layer"></div><div id="tiles-layer"></div></div>
+
+<div id="game-wrapper">
+  <div id="game-container"><div id="grid-layer"></div><div id="tiles-layer"></div></div>
+</div>
+
 <div class="mobile-controls">
   <button class="mc-nw" data-dir="5">↖</button><button class="mc-up" data-dir="0">↑</button><button class="mc-ne" data-dir="1">↗</button>
   <button class="mc-sw" data-dir="4">↙</button><button class="mc-down" data-dir="3">↓</button><button class="mc-se" data-dir="2">↘</button>
 </div>
-<div id="db-status"></div>
+
 <div class="overlay" id="overlay">
   <h2 id="overlayTitle">Игра окончена!</h2>
   <p id="overlayMsg">Попробуйте ещё раз</p>
@@ -131,63 +152,20 @@
   <button class="btn" id="shareBtn" style="display:none;margin-bottom:.4em;">📤 Поделиться рекордом</button>
   <button class="btn" id="overlayBtn">Заново</button>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
 <script>
 window.onerror=(msg,url,line,col,err)=>{console.error('GAME ERROR:',msg,'at',line+':'+col,err);document.title='ERR: '+msg};
 
-// === SUPABASE (UMD — надёжная загрузка) ===
-const SUPABASE_URL = 'https://vjsxfmfjschipjdbmyix.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqc3hmbWZqc2NoaXBqZGJteWl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTc4NzksImV4cCI6MjA5NTI3Mzg3OX0.sGLd7bOD-XA5y2c-b0JXsTvmavX4G1YVH96dzecQbCA';
-let supabaseClient = null;
-const dbStatus = document.getElementById('db-status');
-
-function initSupabase() {
-  try {
-    if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      dbStatus.textContent = '🟢 База подключена';
-      setTimeout(() => dbStatus.style.opacity = '0', 2000);
-    } else {
-      dbStatus.textContent = '🔴 SDK не загружен';
-      console.error('Supabase SDK not found on window');
-    }
-  } catch(e) {
-    dbStatus.textContent = '🔴 Ошибка: ' + e.message;
-    console.error('Supabase init error:', e);
-  }
-}
-
-function getTgUserId() {
-  try { return String(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || ''); } catch(e) { return ''; }
-}
-
-async function saveScoreGlobal(nick, sc, radius) {
-  const uid = getTgUserId();
-  if (!supabaseClient || !nick || !uid) { console.warn('Save skipped: client=', !!supabaseClient, 'nick=', nick, 'uid=', uid); return; }
-  try {
-    const { error } = await supabaseClient.from('leaderboard').insert({ nick: nick.trim(), score: sc, radius, user_id: uid });
-    if (error) console.error('Supabase insert error:', error);
-    else console.log('Score saved:', nick, sc, uid);
-  } catch(e) { console.error('Save exception:', e); }
-}
-
-async function loadLeaderboardGlobal() {
-  if (!supabaseClient) return null;
-  try {
-    const { data, error } = await supabaseClient.from('leaderboard').select('nick,score,radius,user_id').order('score', { ascending: false }).limit(10);
-    if (error) throw error;
-    return data;
-  } catch(e) { console.warn('Load LB failed:', e); return null; }
-}
-
-async function getPersonalBest() {
-  const uid = getTgUserId();
-  if (!supabaseClient || !uid) return null;
-  try {
-    const { data, error } = await supabaseClient.from('leaderboard').select('score').eq('user_id', uid).order('score', { ascending: false }).limit(1);
-    if (error || !data || !data.length) return null;
-    return data[0].score;
-  } catch(e) { return null; }
-}
+// === SUPABASE ===
+const SUPABASE_URL='https://vjsxfmfjschipjdbmyix.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqc3hmbWZqc2NoaXBqZGJteWl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTc4NzksImV4cCI6MjA5NTI3Mzg3OX0.sGLd7bOD-XA5y2c-b0JXsTvmavX4G1YVH96dzecQbCA';
+let supabaseClient=null;
+function initSupabase(){if(typeof supabase==='undefined'){console.error('[DB] SDK not loaded');return}try{supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);console.log('[DB] ✅ Client created');supabaseClient.from('leaderboard').select('id').limit(1).then(({error})=>{if(error)console.error('[DB] ❌ Test failed:',error.message);else console.log('[DB] ✅ Connection OK')})}catch(e){console.error('[DB] ❌ Init:',e.message)}}
+function getTgUserId(){try{const uid=window.Telegram?.WebApp?.initDataUnsafe?.user?.id;return uid?String(uid):''}catch(e){return ''}}
+async function saveScoreGlobal(nick,sc,radius){const uid=getTgUserId();if(!supabaseClient||!nick||!uid)return;try{const{error}=await supabaseClient.from('leaderboard').insert({nick:nick.trim(),score:sc,radius,user_id:uid});if(error)console.error('[DB] ❌ Insert:',error.message);else console.log('[DB] ✅ Saved')}catch(e){console.error('[DB] ❌ Exception:',e.message)}}
+async function loadLeaderboardGlobal(){if(!supabaseClient)return null;try{const{data,error}=await supabaseClient.from('leaderboard').select('nick,score,radius,user_id').order('score',{ascending:false}).limit(10);if(error)return null;return data}catch(e){return null}}
+async function getPersonalBest(){const uid=getTgUserId();if(!supabaseClient||!uid)return null;try{const{data,error}=await supabaseClient.from('leaderboard').select('score').eq('user_id',uid).order('score',{ascending:false}).limit(1);if(error||!data||!data.length)return null;return data[0].score}catch(e){return null}}
 
 // === ЗВУК ===
 const SOUND_KEY='hex2048_sound';let audioCtx=null;let soundEnabled=localStorage.getItem(SOUND_KEY)!=='false';const soundToggle=document.getElementById('soundToggle');
@@ -208,17 +186,18 @@ themeToggle.addEventListener('click',()=>{const c=document.documentElement.getAt
 // === БЛОКИРОВКА СВАЙПОВ ===
 document.addEventListener('touchmove',e=>{if(e.target.closest('#leaderboard')||e.target.closest('#nickname-input'))return;e.preventDefault()},{passive:false});
 
-// === TWA + ПОЛНОЭКРАННЫЙ РЕЖИМ ===
+// === TWA ===
 let tg=null,isTWA=false;
-try{tg=window.Telegram?.WebApp;if(tg){isTWA=true;tg.ready();tg.expand();tg.MainButton.setText('🔄 Новая игра');tg.MainButton.onClick(resetGame)}}catch(e){}
+try{tg=window.Telegram?.WebApp;if(tg){isTWA=true;tg.ready();tg.expand();setTimeout(()=>{try{tg.expand()}catch(e){}},300);setTimeout(()=>{try{tg.expand()}catch(e){}},1000);tg.MainButton.setText('🔄 Новая игра');tg.MainButton.onClick(resetGame)}}catch(e){}
 function haptic(type){try{if(isTWA)tg.HapticFeedback.impactOccurred(type)}catch(e){}}
 
-// === ИСПРАВЛЕНИЕ МАСШТАБА ===
+// === МАСШТАБИРОВАНИЕ ===
+const wrapper=document.getElementById('game-wrapper');
 function forceRecalcLayout(){requestAnimationFrame(()=>{updateContainerSize();renderEmptyGrid();for(const t of tiles.values())positionEl(t.el,t.q,t.r)})}
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(forceRecalcLayout,150)});
-if(isTWA){try{tg.onEvent('viewportChanged',forceRecalcLayout)}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){if(isTWA)try{tg.expand()}catch(e){}setTimeout(forceRecalcLayout,200)}});
+if(isTWA){try{tg.onEvent('viewportChanged',()=>setTimeout(forceRecalcLayout,100))}catch(e){}}
 window.addEventListener('resize',forceRecalcLayout);
-window.addEventListener('orientationchange',()=>setTimeout(forceRecalcLayout,400));
+window.addEventListener('orientationchange',()=>setTimeout(forceRecalcLayout,500));
 
 // === ИГРА ===
 const HEX_SIZE=35,HALF_W=35,HALF_H=30.31;let CURRENT_RADIUS=4,GRID=[],cx=0,cy=0;
@@ -231,60 +210,44 @@ function hexToPixel(q,r){return{x:HEX_SIZE*1.5*q,y:HEX_SIZE*Math.sqrt(3)*(r+q/2)
 function inGrid(q,r){return Math.abs(q)<=CURRENT_RADIUS&&Math.abs(r)<=CURRENT_RADIUS&&Math.abs(q+r)<=CURRENT_RADIUS}
 function buildGrid(r){CURRENT_RADIUS=r;GRID=[];for(let q=-r;q<=r;q++)for(let r2=-r;r2<=r;r2++)if(Math.abs(q+r2)<=r)GRID.push({q,r:r2});updateContainerSize();loadBest()}
 
-// ИСПРАВЛЕНО: clamp масштаба чтобы плитки не вылезали
 function updateContainerSize(){
   let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
   for(const c of GRID){const p=hexToPixel(c.q,c.r);minX=Math.min(minX,p.x-HALF_W);maxX=Math.max(maxX,p.x+HALF_W);minY=Math.min(minY,p.y-HALF_H);maxY=Math.max(maxY,p.y+HALF_H)}
-  const w=Math.ceil(maxX-minX+40),h=Math.ceil(maxY-minY+40);
-  container.style.width=w+'px';container.style.height=h+'px';cx=w/2;cy=h/2;
-  let availH=window.innerHeight;
-  try{if(isTWA&&tg.viewportStableHeight&&tg.viewportStableHeight>0)availH=tg.viewportStableHeight}catch(e){}
-  // Вычитаем высоту хедера, кнопок и отступов
-  const headerH = document.querySelector('.header')?.offsetHeight || 60;
-  const controlsH = document.querySelector('.mobile-controls')?.offsetHeight || 0;
-  const safePad = parseInt(getComputedStyle(document.body).paddingTop)||10 + parseInt(getComputedStyle(document.body).paddingBottom)||10;
-  const usableH = availH - headerH - controlsH - safePad - 40;
-  const usableW = window.innerWidth - 20;
-  const scale = Math.min(1, usableW / w, usableH / h);
-  // Clamp: не меньше 0.3 и не больше 1.0
-  const clampedScale = Math.max(0.3, Math.min(1.0, scale));
-  container.style.transform='scale('+clampedScale+')';container.style.transformOrigin='center center';
+  const fieldW=Math.ceil(maxX-minX+40),fieldH=Math.ceil(maxY-minY+40);
+  container.style.width=fieldW+'px';container.style.height=fieldH+'px';cx=fieldW/2;cy=fieldH/2;
+
+  // Реальная доступная площадь обёртки (уже учитывает хедер и кнопки через flex)
+  const wr=wrapper.getBoundingClientRect();
+  const availW=wr.width-4;
+  const availH=wr.height-4;
+
+  if(availW<=0||availH<=0)return; // Ещё не отрендерилось
+
+  const scaleX=availW/fieldW;
+  const scaleY=availH/fieldH;
+  const scale=Math.max(0.2,Math.min(1.5,Math.min(scaleX,scaleY)));
+
+  container.style.transform='scale('+scale+')';
+  container.style.transformOrigin='center center';
 }
 
 function positionEl(el,q,r){const p=hexToPixel(q,r);el.style.left=(cx+p.x-HALF_W)+'px';el.style.top=(cy+p.y-HALF_H)+'px'}
 
-// === ЛИЧНЫЙ РЕКОРД ===
 async function loadBest(){const localBest=parseInt(localStorage.getItem('hex2048best_'+CURRENT_RADIUS)||'0');const globalBest=await getPersonalBest();best=Math.max(localBest,globalBest||0);document.getElementById('best').textContent=best}
 function saveBestLocal(){if(score>best){best=score;localStorage.setItem('hex2048best_'+CURRENT_RADIUS,best);document.getElementById('best').textContent=best}}
 
-// === ЛИДЕРБОРД ===
 const LB_LOCAL_KEY='hex2048leaderboard';
 function loadLBLocal(){try{return JSON.parse(localStorage.getItem(LB_LOCAL_KEY)||'[]')}catch(e){return[]}}
 function saveLBLocal(nick,sc){const lb=loadLBLocal();lb.push({nick:nick.trim(),score:sc,radius:CURRENT_RADIUS,date:new Date().toLocaleDateString()});lb.sort((a,b)=>b.score-a.score);localStorage.setItem(LB_LOCAL_KEY,JSON.stringify(lb.slice(0,10)))}
-function renderLBRows(rows){
-  const el=document.getElementById('leaderboard'),myId=getTgUserId();
-  if(!rows||!rows.length){el.innerHTML='<div style="text-align:center;color:var(--text-sec);padding:.6em">Пока пусто</div>';return}
-  let h='<div class="lb-header"><span>Игрок</span><span>Счёт</span></div>';
-  rows.forEach((e,i)=>{const isMe=myId&&e.user_id===myId;h+='<div class="lb-row'+(i===0?' top1':'')+(isMe?' me':'')+'"><span>'+(i+1)+'. '+e.nick+' <small style="color:var(--text-sec)">('+e.radius+')</small></span><span>'+e.score+'</span></div>'});
-  el.innerHTML=h;
-}
+function renderLBRows(rows){const el=document.getElementById('leaderboard'),myId=getTgUserId();if(!rows||!rows.length){el.innerHTML='<div style="text-align:center;color:var(--text-sec);padding:.6em">Пока пусто</div>';return}let h='<div class="lb-header"><span>Игрок</span><span>Счёт</span></div>';rows.forEach((e,i)=>{const isMe=myId&&e.user_id===myId;h+='<div class="lb-row'+(i===0?' top1':'')+(isMe?' me':'')+'"><span>'+(i+1)+'. '+e.nick+' <small style="color:var(--text-sec)">('+e.radius+')</small></span><span>'+e.score+'</span></div>'});el.innerHTML=h}
 async function renderLeaderboard(){document.getElementById('leaderboard').innerHTML='<div class="lb-loading">Загрузка...</div>';const g=await loadLeaderboardGlobal();if(g){renderLBRows(g);return}renderLBRows(loadLBLocal())}
 async function saveLeaderboardEntry(nick,sc){saveLBLocal(nick,sc);await saveScoreGlobal(nick,sc,CURRENT_RADIUS)}
 
-// === ИГРОВАЯ ЛОГИКА ===
 function resetGame(){tiles.forEach(t=>t.el.remove());tiles.clear();nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;document.getElementById('score').textContent='0';document.getElementById('overlay').classList.remove('active');document.getElementById('nickname-form').style.display='none';document.getElementById('shareBtn').style.display='none';loadBest();renderEmptyGrid();for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();haptic('light')}
 function renderEmptyGrid(){gridLayer.innerHTML='';for(const c of GRID){const el=document.createElement('div');el.className='hex empty';positionEl(el,c.q,c.r);gridLayer.appendChild(el)}}
 function emptyCells(){const occ=new Set();for(const t of tiles.values())occ.add(key(t.q,t.r));return GRID.filter(c=>!occ.has(key(c.q,c.r)))}
 function addTile(q,r,value){const id=nextTileId++;const el=document.createElement('div');el.className='hex tile new-tile';el.dataset.value=value;el.textContent=value;positionEl(el,q,r);tilesLayer.appendChild(el);const tile={id,value,q,r,el};tiles.set(id,tile);return tile}
-
-// ИСПРАВЛЕНО: был баг с двойным Math.random() — каждая координата выбиралась отдельно
-function addRandomTile(){
-  const empty=emptyCells();
-  if(!empty.length)return;
-  const cell=empty[Math.floor(Math.random()*empty.length)];
-  addTile(cell.q,cell.r,Math.random()<.9?2:4);
-}
-
+function addRandomTile(){const empty=emptyCells();if(!empty.length)return;const cell=empty[Math.floor(Math.random()*empty.length)];addTile(cell.q,cell.r,Math.random()<.9?2:4)}
 function getLines(dir){const{dq,dr}=DIRECTIONS[dir],lines={};for(const c of GRID){let lid;if(dir===0||dir===3)lid='q='+c.q;else if(dir===1||dir===4)lid='s='+(c.q+c.r);else lid='r='+c.r;if(!lines[lid])lines[lid]=[];lines[lid].push(c)}for(const k in lines)lines[k].sort((a,b)=>(a.q*dq+a.r*dr)-(b.q*dq+b.r*dr));return Object.values(lines)}
 function move(dir){
   if(gameOver||isAnimating)return;const{dq,dr}=DIRECTIONS[dir],lines=getLines(dir);
@@ -300,7 +263,6 @@ function performNeighborMerges(pairs){SFX.cascade();haptic('medium');for(const[t
 function cascadeNeighborMerges(){const pairs=findNeighborPairs();if(pairs.length===0){addRandomTile();if(isGameOver()){gameOver=true;SFX.lose();haptic('error');setTimeout(()=>showOverlay('Игра окончена','Финальный счёт: '+score,false),350)}isAnimating=false;return}performNeighborMerges(pairs);setTimeout(cascadeNeighborMerges,300)}
 function isGameOver(){if(emptyCells().length>0)return false;const tl=Array.from(tiles.values());for(const t of tl)for(const d of DIRECTIONS){const nq=t.q+d.dq,nr=t.r+d.dr;if(!inGrid(nq,nr))continue;for(const o of tl)if(o.id!==t.id&&o.q===nq&&o.r===nr&&o.value===t.value)return false}return true}
 
-// === ОВЕРЛЕЙ + ШЕРИНГ ===
 function showOverlay(title,msg,keep){
   document.getElementById('overlayTitle').textContent=title;document.getElementById('overlayMsg').textContent=msg;
   const form=document.getElementById('nickname-form'),input=document.getElementById('nickname-input'),btn=document.getElementById('overlayBtn'),shareBtn=document.getElementById('shareBtn');
@@ -312,7 +274,6 @@ function showOverlay(title,msg,keep){
 document.getElementById('submit-nick').addEventListener('click',async()=>{const n=document.getElementById('nickname-input').value.trim();if(n){await saveLeaderboardEntry(n,score);submittedNick=true;document.getElementById('nickname-form').style.display='none';renderLeaderboard();haptic('success')}});
 document.getElementById('nickname-input').addEventListener('keypress',e=>{if(e.key==='Enter')document.getElementById('submit-nick').click()});
 
-// === УПРАВЛЕНИЕ ===
 const pressed=new Set();let lastDir=-1;
 document.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();if(e.repeat)return;pressed.add(e.key);const dir=getDir();if(dir!==-1&&dir!==lastDir){lastDir=dir;move(dir)}}});
 document.addEventListener('keyup',e=>{if(pressed.has(e.key)){pressed.delete(e.key);lastDir=-1}});
@@ -324,13 +285,8 @@ document.querySelectorAll('.mobile-controls button').forEach(btn=>{btn.addEventL
 document.getElementById('radiusSelect').addEventListener('change',e=>{buildGrid(parseInt(e.target.value));resetGame()});
 document.getElementById('newGameBtn').addEventListener('click',resetGame);
 
-// === ЗАПУСК ===
-initTheme();
-initSupabase();
-buildGrid(4);
-resetGame();
-// Принудительный пересчёт после полной загрузки DOM
-window.addEventListener('load', () => setTimeout(forceRecalcLayout, 200));
+initTheme();initSupabase();buildGrid(4);resetGame();
+window.addEventListener('load',()=>{setTimeout(forceRecalcLayout,100);setTimeout(forceRecalcLayout,500);setTimeout(forceRecalcLayout,1500)});
 </script>
 </body>
 </html>
