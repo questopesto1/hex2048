@@ -2,6 +2,9 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Hex2048</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -24,21 +27,9 @@
   #game-container{position:relative;flex-shrink:0}
   #grid-layer,#tiles-layer{position:absolute;inset:0;pointer-events:none}
   #grid-layer{z-index:0}#tiles-layer{z-index:1}
-
-  /* === ПРОСТАЯ ПЛИТКА: только border + background === */
-  .hex{
-    position:absolute;width:70px;height:60.62px;
-    clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);
-    display:flex;align-items:center;justify-content:center;
-    font-size:1.2rem;font-weight:800;line-height:1;
-    transition:left .18s ease-out,top .18s ease-out;
-    z-index:2;
-    -webkit-font-smoothing:antialiased;
-  }
+  .hex{position:absolute;width:70px;height:60.62px;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;line-height:1;transition:left .18s ease-out,top .18s ease-out;z-index:2;-webkit-font-smoothing:antialiased}
   .hex.empty{z-index:0;opacity:.3}
   .hex.tile{z-index:2}
-
-  /* Анимации: только transform + opacity */
   .hex.new-tile{animation:tileAppear .3s ease-out}
   .hex.merged-tile{animation:tileMerge .3s ease-out}
   .hex.neighbor-merged{animation:tileNeighborMerge .35s ease-out}
@@ -47,10 +38,8 @@
   @keyframes tileMerge{0%{transform:scale(1)}30%{transform:scale(1.2)}100%{transform:scale(1)}}
   @keyframes tileNeighborMerge{0%{transform:scale(1)}25%{transform:scale(1.25)}50%{transform:scale(.95)}100%{transform:scale(1)}}
   @keyframes tileShatter{0%{transform:scale(1);opacity:1}100%{transform:scale(0);opacity:0}}
-
   .spark{position:absolute;width:5px;height:5px;border-radius:50%;pointer-events:none;z-index:10;animation:sparkFly .5s ease-out forwards}
   @keyframes sparkFly{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(0);opacity:0}}
-
   .mobile-controls{display:none;margin-top:.3em;gap:3px;grid-template-columns:repeat(3,var(--btn-size,48px));grid-template-rows:repeat(2,var(--btn-size,48px));justify-content:center;align-items:center;flex-shrink:0}
   .mobile-controls button{width:var(--btn-size,48px);height:var(--btn-size,48px);font-size:1rem;border:2px solid;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
   .mobile-controls button:active{transform:scale(.92)}
@@ -62,7 +51,6 @@
   .overlay p{font-size:.9rem;margin-bottom:.7em;text-align:center;opacity:.6}
   #nickname-form{display:none;align-items:center;gap:.4em;margin-bottom:.8em}
   #nickname-input{padding:.35em .5em;border-radius:6px;border:2px solid;font-size:.9rem;width:140px;text-align:center;outline:none;touch-action:auto}
-  #nickname-input:focus{border-color:var(--accent)}
   .lb-container{width:280px;max-height:220px;overflow-y:auto;border-radius:8px;padding:.4em;font-size:.8rem;margin-bottom:.7em;overscroll-behavior:contain;border:1px solid}
   .lb-tabs{display:flex;gap:4px;margin-bottom:.4em}
   .lb-tab{flex:1;padding:.3em;border-radius:6px;border:2px solid;font-size:.7rem;font-weight:bold;cursor:pointer;text-align:center;transition:all .2s;background:transparent}
@@ -120,7 +108,7 @@
 <script>
 window.onerror=(msg,url,line,col,err)=>{console.error('GAME ERROR:',msg,'at',line+':'+col,err);document.title='ERR: '+msg};
 
-// === ЦВЕТОВЫЕ ТЕМЫ (JS-объекты для надёжности на iOS) ===
+// === ЦВЕТОВЫЕ ТЕМЫ (JS-объекты для надёжности на iOS/macOS) ===
 const THEMES={
   dark:{
     bg:'#0a0a14',bgGrad:'radial-gradient(ellipse at center,#14142e 0%,#0a0a14 70%)',
@@ -141,34 +129,20 @@ const THEMES={
     textColors:{2:'#4a3a20',4:'#2a3a10',8:'#fff',16:'#fff',32:'#fff',64:'#fff',128:'#fff',256:'#fff',512:'#fff',1024:'#fff',2048:'#fff',4096:'#fff',8192:'#fff'}
   }
 };
-
 let currentTheme='dark';
 
-// === ПРИМЕНЕНИЕ ТЕМЫ (inline style = работает везде) ===
 function applyTheme(t){
   currentTheme=t;
   const th=THEMES[t];
   const b=document.body;
-  // Inline стили — самый надёжный способ для iOS Safari
   b.style.background=th.bgGrad;
   b.style.color=th.text;
   document.documentElement.setAttribute('data-theme',t);
   localStorage.setItem('hex2048_theme',t);
-
-  // Обновляем все элементы через CSS-переменные как backup
   const s=b.style;
-  s.setProperty('--accent',th.accent);
-  s.setProperty('--text',th.text);
-  s.setProperty('--text-sec',th.textSec);
-  s.setProperty('--panel',th.panel);
-  s.setProperty('--border',th.border);
-  s.setProperty('--empty',th.empty);
-  s.setProperty('--overlay',th.overlay);
-
-  // Кнопки и панели
-  document.querySelectorAll('.score-box,.diff-select,.icon-btn,.mobile-controls button').forEach(el=>{
-    el.style.background=th.panel;el.style.borderColor=th.border;el.style.color=th.accent;
-  });
+  s.setProperty('--accent',th.accent);s.setProperty('--text',th.text);s.setProperty('--text-sec',th.textSec);
+  s.setProperty('--panel',th.panel);s.setProperty('--border',th.border);s.setProperty('--empty',th.empty);s.setProperty('--overlay',th.overlay);
+  document.querySelectorAll('.score-box,.diff-select,.icon-btn,.mobile-controls button').forEach(el=>{el.style.background=th.panel;el.style.borderColor=th.border;el.style.color=th.accent});
   document.querySelectorAll('.btn:not(.btn-share)').forEach(el=>{el.style.background=th.btnBg});
   document.querySelector('.btn-share').style.background='linear-gradient(135deg,#6c5ce7,#a29bfe)';
   document.querySelectorAll('.overlay').forEach(el=>{el.style.background=th.overlay});
@@ -180,19 +154,11 @@ function applyTheme(t){
   document.getElementById('nickname-input').style.background=th.panel;
   document.getElementById('nickname-input').style.borderColor=th.border;
   document.getElementById('nickname-input').style.color=th.text;
-
-  // Иконка темы
   document.getElementById('themeToggle').textContent=t==='dark'?'🌙':'☀️';
-
-  // Магнит
   const mag=document.getElementById('magnetToggle');
   if(mag.classList.contains('active')){mag.style.background=th.accent;mag.style.color='#fff';mag.style.borderColor=th.accent}
   else{mag.style.background=th.panel;mag.style.color=th.accent;mag.style.borderColor=th.border}
-
-  // Перекрашиваем плитки
   retileColors();
-
-  // Принудительный repaint для iOS
   requestAnimationFrame(()=>{b.style.display='none';b.offsetHeight;b.style.display=''});
 }
 
@@ -200,13 +166,11 @@ function retileColors(){
   const th=THEMES[currentTheme];
   document.querySelectorAll('.hex.tile').forEach(el=>{
     const v=parseInt(el.dataset.value)||0;
-    const colorKey=v<=8192?v:'higher';
-    el.style.background=th.colors[colorKey]||'#888';
-    el.style.color=th.textColors[colorKey]||'#fff';
+    const ck=v<=8192?v:'higher';
+    el.style.background=th.colors[ck]||'#888';
+    el.style.color=th.textColors[ck]||'#fff';
   });
-  document.querySelectorAll('.hex.empty').forEach(el=>{
-    el.style.background=th.empty;
-  });
+  document.querySelectorAll('.hex.empty').forEach(el=>{el.style.background=th.empty});
 }
 
 // === SUPABASE ===
@@ -271,12 +235,7 @@ document.addEventListener('touchstart',initAudio,{once:true});document.addEventL
 function playTone(freq,type,duration,vol=.15){if(!soundEnabled||!audioCtx)return;try{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(freq,audioCtx.currentTime);g.gain.setValueAtTime(vol,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration)}catch(e){}}
 const SFX={move:()=>playTone(300,'triangle',.06,.08),merge:v=>playTone(400+Math.log2(v)*60,'sine',.15,.12),cascade:()=>playTone(800,'sine',.1,.1),win:()=>{playTone(523,'sine',.15,.15);setTimeout(()=>playTone(659,'sine',.15,.15),120);setTimeout(()=>playTone(784,'sine',.3,.15),240)},lose:()=>{playTone(300,'sawtooth',.3,.1);setTimeout(()=>playTone(200,'sawtooth',.4,.1),200)}};updateSoundIcon();
 
-// === ТЕМА: переключатель ===
-document.getElementById('themeToggle').addEventListener('click',()=>{
-  applyTheme(currentTheme==='dark'?'light':'dark');
-  haptic('light');
-});
-
+document.getElementById('themeToggle').addEventListener('click',()=>{applyTheme(currentTheme==='dark'?'light':'dark');haptic('light')});
 document.addEventListener('touchmove',e=>{if(e.target.closest('.lb-container')||e.target.closest('#nickname-input'))return;e.preventDefault()},{passive:false});
 
 let tg=null,isTWA=false;
@@ -341,9 +300,9 @@ function addTile(q,r,value,noAnim){
   el.className='hex tile'+(noAnim?'':' new-tile');
   el.dataset.value=value;el.textContent=value;
   const th=THEMES[currentTheme];
-  const colorKey=value<=8192?value:'higher';
-  el.style.background=th.colors[colorKey]||'#888';
-  el.style.color=th.textColors[colorKey]||'#fff';
+  const ck=value<=8192?value:'higher';
+  el.style.background=th.colors[ck]||'#888';
+  el.style.color=th.textColors[ck]||'#fff';
   positionEl(el,q,r);tilesLayer.appendChild(el);
   const tile={id,value,q,r,el};tiles.set(id,tile);return tile;
 }
@@ -430,7 +389,6 @@ radiusSelect.addEventListener('change',e=>{switchRadius(parseInt(e.target.value)
 document.getElementById('newGameBtn').addEventListener('click',newGame);
 
 // === ЗАПУСК ===
-// Определяем тему ДО всего
 (function(){
   const saved=localStorage.getItem('hex2048_theme');
   if(saved){applyTheme(saved);return}
