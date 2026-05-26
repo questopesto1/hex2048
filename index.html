@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Hex2048</title>
+<title>Hex2048 Gems</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  :root{--bg:#1a1a2e;--bg-grad:radial-gradient(ellipse at center,#232347 0%,#1a1a2e 70%);--panel:#16213e;--border:#0f3460;--accent:#f7b733;--text:#eee;--text-sec:#888;--empty:#1e2942;--overlay:rgba(26,26,46,.94)}
-  [data-theme="light"]{--bg:#faf8ef;--bg-grad:radial-gradient(ellipse at center,#fff 0%,#faf8ef 70%);--panel:#bbada0;--border:#a39489;--accent:#8f7a66;--text:#776e65;--text-sec:#a39489;--empty:#cdc1b4;--overlay:rgba(250,248,239,.95)}
+  :root{--bg:#0d0d1a;--bg-grad:radial-gradient(ellipse at center,#1a1a3e 0%,#0d0d1a 70%);--panel:#151530;--border:#2a2a5e;--accent:#f7b733;--text:#eee;--text-sec:#888;--empty:#1a1a35;--overlay:rgba(13,13,26,.96)}
+  [data-theme="light"]{--bg:#f5f0e8;--bg-grad:radial-gradient(ellipse at center,#fffdf5 0%,#f5f0e8 70%);--panel:#e8e0d0;--border:#c8b898;--accent:#8f7a66;--text:#4a4035;--text-sec:#9a8a70;--empty:#ddd5c5;--overlay:rgba(245,240,232,.96)}
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{width:100%;height:100%;overflow:hidden;overscroll-behavior:none;position:fixed;top:0;left:0;right:0;bottom:0;margin:0;padding:0}
   body{background:var(--bg-grad);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;user-select:none;-webkit-user-select:none;padding-top:max(env(safe-area-inset-top),8px);padding-bottom:max(env(safe-area-inset-bottom),8px);padding-left:8px;padding-right:8px;transition:background .3s,color .3s;min-height:100vh;min-height:100dvh;height:100%}
-  h1{font-size:1.8rem;margin:.2em 0;background:linear-gradient(135deg,var(--accent),#fc4a1a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:0}
+  h1{font-size:1.8rem;margin:.2em 0;background:linear-gradient(135deg,#ff6bcb,#f7b733,#4deeea);-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:0;text-shadow:none}
   .header{display:flex;align-items:center;gap:.4em;margin-bottom:.3em;flex-wrap:wrap;justify-content:center;flex-shrink:0}
   .score-box{background:var(--panel);border:2px solid var(--border);border-radius:8px;padding:.2em .6em;text-align:center;min-width:55px;transition:background .3s,border-color .3s}
   .score-box .label{font-size:.5rem;color:var(--text-sec);text-transform:uppercase;letter-spacing:1px}
@@ -26,43 +26,187 @@
   #game-container{position:relative;flex-shrink:0}
   #grid-layer,#tiles-layer{position:absolute;inset:0;pointer-events:none}
   #grid-layer{z-index:0}#tiles-layer{z-index:1}
-  .hex{position:absolute;width:70px;height:60.62px;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);display:flex;align-items:center;justify-content:center;font-size:1.15rem;font-weight:700;transition:left .18s ease-out,top .18s ease-out,background .2s;filter:drop-shadow(0 3px 2px rgba(0,0,0,.4)) drop-shadow(0 5px 5px rgba(0,0,0,.25))}
-  .hex::before{content:'';position:absolute;inset:0;clip-path:inherit;background:linear-gradient(180deg,rgba(255,255,255,.45) 0%,rgba(255,255,255,.08) 40%,transparent 55%,rgba(0,0,0,.2) 100%);pointer-events:none}
-  .hex::after{content:'';position:absolute;inset:4px;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);background:linear-gradient(135deg,rgba(255,255,255,.2) 0%,transparent 60%);pointer-events:none}
-  .hex.empty{background:var(--empty);color:transparent;filter:none;z-index:0}.hex.empty::before,.hex.empty::after{display:none}
+
+  /* === БАЗОВАЯ ПЛИТКА-КРИСТАЛЛ === */
+  .hex{
+    position:absolute;width:70px;height:60.62px;
+    clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.15rem;font-weight:800;
+    transition:left .18s ease-out,top .18s ease-out,background .2s;
+    text-shadow:0 1px 3px rgba(0,0,0,.5),0 0 8px rgba(255,255,255,.3);
+  }
+  /* Верхняя грань — блик */
+  .hex::before{
+    content:'';position:absolute;inset:0;clip-path:inherit;
+    background:linear-gradient(170deg,rgba(255,255,255,.7) 0%,rgba(255,255,255,.2) 25%,transparent 50%,rgba(0,0,0,.15) 75%,rgba(0,0,0,.3) 100%);
+    pointer-events:none;z-index:1;
+  }
+  /* Внутренняя грань — глубина */
+  .hex::after{
+    content:'';position:absolute;
+    top:6px;left:8px;right:8px;bottom:6px;
+    clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);
+    background:linear-gradient(135deg,rgba(255,255,255,.35) 0%,rgba(255,255,255,.05) 40%,transparent 60%);
+    pointer-events:none;z-index:2;
+  }
+
+  /* === ПУСТЫЕ ЯЧЕЙКИ — ОПРАВЫ === */
+  .hex.empty{
+    background:var(--empty);
+    color:transparent;
+    filter:none;
+    z-index:0;
+    border:none;
+    box-shadow:inset 0 0 8px rgba(255,255,255,.03);
+  }
+  .hex.empty::before{
+    background:linear-gradient(170deg,rgba(255,255,255,.06) 0%,transparent 40%,rgba(0,0,0,.1) 100%);
+  }
+  .hex.empty::after{display:none}
+
   .hex.tile{z-index:2}
-  .hex.new-tile{animation:popIn .28s cubic-bezier(.175,.885,.32,1.275)}
-  .hex.merged-tile{animation:popMerge .32s ease-out}
-  .hex.neighbor-merged{animation:neighborMerge .4s ease-out}
-  .hex.consumed-neighbor{animation:consumedFade .25s ease-out forwards}
-  @keyframes popIn{0%{transform:scale(0) rotate(-30deg);opacity:0}60%{transform:scale(1.15) rotate(5deg)}100%{transform:scale(1) rotate(0);opacity:1}}
-  @keyframes popMerge{0%{transform:scale(1)}30%{transform:scale(1.3)}100%{transform:scale(1)}}
-  @keyframes neighborMerge{0%{transform:scale(1)}30%{transform:scale(1.35) rotate(5deg);filter:drop-shadow(0 0 15px rgba(255,220,100,.9))}60%{transform:scale(.95)}100%{transform:scale(1)}}
-  @keyframes consumedFade{0%{transform:scale(1);opacity:1}100%{transform:scale(.3) rotate(180deg);opacity:0}}
-  .hex[data-value="2"]{background:linear-gradient(145deg,#eee4da,#ede0c8);color:#776e65}
-  .hex[data-value="4"]{background:linear-gradient(145deg,#ede0c8,#e2cfa5);color:#776e65}
-  .hex[data-value="8"]{background:linear-gradient(145deg,#f2b179,#f59563);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.2)}
-  .hex[data-value="16"]{background:linear-gradient(145deg,#f59563,#f67c5f);color:#fff}
-  .hex[data-value="32"]{background:linear-gradient(145deg,#f67c5f,#f65e3b);color:#fff}
-  .hex[data-value="64"]{background:linear-gradient(145deg,#f65e3b,#edcf72);color:#fff}
-  .hex[data-value="128"]{background:linear-gradient(145deg,#edcf72,#edcc61);color:#fff;font-size:1rem}
-  .hex[data-value="256"]{background:linear-gradient(145deg,#edcc61,#edc850);color:#fff;animation:glowOrange 2s ease-in-out infinite;font-size:1rem}
-  .hex[data-value="512"]{background:linear-gradient(145deg,#edc850,#edc53f);color:#fff;animation:glowRed 1.8s ease-in-out infinite;font-size:1rem}
-  .hex[data-value="1024"]{background:linear-gradient(145deg,#edc53f,#edc22e);color:#fff;font-size:.9rem;animation:glowPurple 1.6s ease-in-out infinite}
-  .hex[data-value="2048"]{background:linear-gradient(145deg,#edc22e,#edd92e);color:#fff;font-size:.9rem;animation:glowGold 1.4s ease-in-out infinite}
-  .hex[data-value="4096"]{background:linear-gradient(145deg,#ba68c8,#e84393);color:#fff;font-size:.9rem;animation:glowPink 1.3s ease-in-out infinite}
-  .hex[data-value="8192"]{background:linear-gradient(145deg,#4dd0e1,#00b894);color:#fff;font-size:.9rem;animation:glowCyan 1.2s ease-in-out infinite}
-  .hex.higher{background:linear-gradient(145deg,#f06292,#6c5ce7);color:#fff;font-size:.8rem;animation:glowPink 1.2s ease-in-out infinite}
-  @keyframes glowOrange{0%,100%{filter:drop-shadow(0 0 6px rgba(243,156,18,.6))}50%{filter:drop-shadow(0 0 14px rgba(243,156,18,.9))}}
-  @keyframes glowRed{0%,100%{filter:drop-shadow(0 0 7px rgba(225,112,85,.7))}50%{filter:drop-shadow(0 0 16px rgba(225,112,85,1))}}
-  @keyframes glowPurple{0%,100%{filter:drop-shadow(0 0 8px rgba(108,92,231,.7))}50%{filter:drop-shadow(0 0 18px rgba(108,92,231,1))}}
-  @keyframes glowGold{0%,100%{filter:drop-shadow(0 0 10px rgba(255,152,0,.8))}50%{filter:drop-shadow(0 0 22px rgba(255,213,79,1))}}
-  @keyframes glowPink{0%,100%{filter:drop-shadow(0 0 10px rgba(232,67,147,.8))}50%{filter:drop-shadow(0 0 22px rgba(232,67,147,1))}}
-  @keyframes glowCyan{0%,100%{filter:drop-shadow(0 0 10px rgba(0,206,201,.8))}50%{filter:drop-shadow(0 0 24px rgba(77,208,225,1))}}
-  .hex.big-flash::before{animation:flashOverlay .6s ease-out}
-  @keyframes flashOverlay{0%{background:rgba(255,255,255,.95)}100%{background:linear-gradient(180deg,rgba(255,255,255,.45) 0%,rgba(255,255,255,.08) 40%,transparent 55%,rgba(0,0,0,.2) 100%)}}
-  .spark{position:absolute;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle,#fff,#ffd54f);pointer-events:none;z-index:10;animation:sparkFly .6s ease-out forwards}
-  @keyframes sparkFly{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(0);opacity:0}}
+
+  /* === АНИМАЦИИ КРИСТАЛЛОВ === */
+  .hex.new-tile{animation:gemAppear .4s cubic-bezier(.175,.885,.32,1.275)}
+  .hex.merged-tile{animation:gemMerge .4s ease-out}
+  .hex.neighbor-merged{animation:gemNeighborMerge .5s ease-out}
+  .hex.consumed-neighbor{animation:gemShatter .3s ease-out forwards}
+
+  @keyframes gemAppear{
+    0%{transform:scale(0) rotate(-60deg);opacity:0;filter:brightness(3)}
+    50%{transform:scale(1.2) rotate(10deg);filter:brightness(1.8)}
+    100%{transform:scale(1) rotate(0);opacity:1;filter:brightness(1)}
+  }
+  @keyframes gemMerge{
+    0%{transform:scale(1);filter:brightness(1)}
+    25%{transform:scale(1.35);filter:brightness(2) drop-shadow(0 0 15px rgba(255,255,255,.8))}
+    50%{transform:scale(.9);filter:brightness(1.3)}
+    100%{transform:scale(1);filter:brightness(1)}
+  }
+  @keyframes gemNeighborMerge{
+    0%{transform:scale(1)}
+    20%{transform:scale(1.4) rotate(8deg);filter:brightness(2.5) drop-shadow(0 0 20px rgba(255,220,100,.9))}
+    50%{transform:scale(.85) rotate(-3deg)}
+    100%{transform:scale(1) rotate(0)}
+  }
+  @keyframes gemShatter{
+    0%{transform:scale(1);opacity:1;filter:brightness(2)}
+    50%{transform:scale(1.2) rotate(15deg);opacity:.6;filter:brightness(3)}
+    100%{transform:scale(0) rotate(45deg);opacity:0;filter:brightness(5)}
+  }
+
+  /* === ЦВЕТА ДРАГОЦЕННЫХ КАМНЕЙ === */
+  .hex[data-value="2"]{
+    background:linear-gradient(145deg,#e8e0d0,#d4c8b0,#c8b898);
+    color:#6a5d45;
+    filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));
+    text-shadow:0 1px 0 rgba(255,255,255,.4);
+  }
+  .hex[data-value="4"]{
+    background:linear-gradient(145deg,#c8e6c9,#a5d6a7,#81c784);
+    color:#2e5a2e;
+    filter:drop-shadow(0 2px 6px rgba(76,175,80,.3));
+    text-shadow:0 1px 0 rgba(255,255,255,.4);
+  }
+  .hex[data-value="8"]{
+    background:linear-gradient(145deg,#bbdefb,#64b5f6,#42a5f5);
+    color:#fff;
+    filter:drop-shadow(0 3px 8px rgba(33,150,243,.4));
+  }
+  .hex[data-value="16"]{
+    background:linear-gradient(145deg,#e1bee7,#ce93d8,#ba68c8);
+    color:#fff;
+    filter:drop-shadow(0 3px 8px rgba(156,39,176,.4));
+  }
+  .hex[data-value="32"]{
+    background:linear-gradient(145deg,#ffccbc,#ff8a65,#ff7043);
+    color:#fff;
+    filter:drop-shadow(0 3px 10px rgba(255,87,34,.4));
+  }
+  .hex[data-value="64"]{
+    background:linear-gradient(145deg,#ef9a9a,#ef5350,#e53935);
+    color:#fff;
+    filter:drop-shadow(0 4px 12px rgba(229,57,53,.5));
+  }
+  .hex[data-value="128"]{
+    background:linear-gradient(145deg,#fff9c4,#fff176,#fdd835);
+    color:#5d4e00;font-size:1rem;
+    filter:drop-shadow(0 4px 12px rgba(253,216,53,.5));
+  }
+  .hex[data-value="256"]{
+    background:linear-gradient(145deg,#b2dfdb,#4db6ac,#00897b);
+    color:#fff;font-size:1rem;
+    filter:drop-shadow(0 0 10px rgba(0,137,123,.6));
+    animation:gemPulse 2.5s ease-in-out infinite;
+  }
+  .hex[data-value="512"]{
+    background:linear-gradient(145deg,#f8bbd0,#f06292,#ec407a);
+    color:#fff;font-size:1rem;
+    filter:drop-shadow(0 0 12px rgba(236,64,122,.6));
+    animation:gemPulse 2.2s ease-in-out infinite;
+  }
+  .hex[data-value="1024"]{
+    background:linear-gradient(145deg,#d1c4e9,#9575cd,#7e57c2);
+    color:#fff;font-size:.9rem;
+    filter:drop-shadow(0 0 14px rgba(126,87,194,.7));
+    animation:gemPulse 2s ease-in-out infinite;
+  }
+  .hex[data-value="2048"]{
+    background:linear-gradient(145deg,#ffe082,#ffc107,#ff8f00);
+    color:#fff;font-size:.9rem;
+    filter:drop-shadow(0 0 18px rgba(255,143,0,.8));
+    animation:gemRadiance 1.8s ease-in-out infinite;
+  }
+  .hex[data-value="4096"]{
+    background:linear-gradient(145deg,#80deea,#26c6da,#00acc1);
+    color:#fff;font-size:.9rem;
+    filter:drop-shadow(0 0 20px rgba(0,172,193,.8));
+    animation:gemRadiance 1.6s ease-in-out infinite;
+  }
+  .hex[data-value="8192"]{
+    background:linear-gradient(145deg,#ea80fc,#e040fb,#d500f9);
+    color:#fff;font-size:.9rem;
+    filter:drop-shadow(0 0 22px rgba(213,0,249,.9));
+    animation:gemRadiance 1.4s ease-in-out infinite;
+  }
+  .hex.higher{
+    background:linear-gradient(145deg,#ff80ab,#ff4081,#f50057);
+    color:#fff;font-size:.8rem;
+    filter:drop-shadow(0 0 25px rgba(245,0,87,.9));
+    animation:gemRadiance 1.2s ease-in-out infinite;
+  }
+
+  @keyframes gemPulse{
+    0%,100%{filter:drop-shadow(0 0 8px currentColor) brightness(1)}
+    50%{filter:drop-shadow(0 0 18px currentColor) brightness(1.2)}
+  }
+  @keyframes gemRadiance{
+    0%,100%{filter:drop-shadow(0 0 12px currentColor) brightness(1);transform:scale(1)}
+    50%{filter:drop-shadow(0 0 25px currentColor) brightness(1.3);transform:scale(1.03)}
+  }
+
+  /* Вспышка при крупном слиянии */
+  .hex.big-flash::before{animation:gemFlashOverlay .7s ease-out}
+  @keyframes gemFlashOverlay{
+    0%{background:rgba(255,255,255,1);filter:brightness(3)}
+    30%{background:rgba(255,255,255,.6)}
+    100%{background:linear-gradient(170deg,rgba(255,255,255,.7) 0%,rgba(255,255,255,.2) 25%,transparent 50%,rgba(0,0,0,.15) 75%,rgba(0,0,0,.3) 100%)}
+  }
+
+  /* Радужные осколки */
+  .spark{
+    position:absolute;width:8px;height:8px;
+    border-radius:2px;
+    background:linear-gradient(135deg,#ff6bcb,#f7b733,#4deeea,#a29bfe);
+    pointer-events:none;z-index:10;
+    animation:gemSparkFly .7s ease-out forwards;
+  }
+  @keyframes gemSparkFly{
+    0%{transform:translate(-50%,-50%) scale(1) rotate(0);opacity:1}
+    100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(0) rotate(180deg);opacity:0}
+  }
+
   .mobile-controls{display:none;margin-top:.3em;gap:3px;grid-template-columns:repeat(3,var(--btn-size,48px));grid-template-rows:repeat(2,var(--btn-size,48px));justify-content:center;align-items:center;flex-shrink:0}
   .mobile-controls button{width:var(--btn-size,48px);height:var(--btn-size,48px);font-size:1rem;background:var(--panel);border:2px solid var(--border);color:var(--accent);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
   .mobile-controls button:active{background:var(--border);transform:scale(.92)}
@@ -70,7 +214,7 @@
   .mc-sw{grid-column:1;grid-row:2}.mc-down{grid-column:2;grid-row:2}.mc-se{grid-column:3;grid-row:2}
   .overlay{position:absolute;inset:0;background:var(--overlay);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;border-radius:16px;opacity:0;pointer-events:none;transition:opacity .35s;padding:1.5em}
   .overlay.active{opacity:1;pointer-events:all}
-  .overlay h2{font-size:1.6rem;margin-bottom:.3em;background:linear-gradient(135deg,var(--accent),#fc4a1a);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .overlay h2{font-size:1.6rem;margin-bottom:.3em;background:linear-gradient(135deg,#ff6bcb,#f7b733,#4deeea);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
   .overlay p{font-size:.9rem;color:var(--text-sec);margin-bottom:.7em;text-align:center}
   #nickname-form{display:none;align-items:center;gap:.4em;margin-bottom:.8em}
   #nickname-input{padding:.35em .5em;border-radius:6px;border:2px solid var(--border);background:var(--panel);color:var(--text);font-size:.9rem;width:140px;text-align:center;outline:none;touch-action:auto}
@@ -92,7 +236,7 @@
 </style>
 </head>
 <body>
-<h1>⬡ Hex 2048</h1>
+<h1>💎 Hex 2048</h1>
 <div class="header">
   <div class="score-box"><div class="label">Счёт</div><div class="value" id="score">0</div></div>
   <select class="diff-select" id="radiusSelect">
@@ -142,107 +286,41 @@ function getTgUser(){try{const u=window.Telegram?.WebApp?.initDataUnsafe?.user;i
 function getTgUserId(){const u=getTgUser();return u?u.id:''}
 function getDefaultNick(){const u=getTgUser();return u?u.name:'Player'}
 
-// ИСПРАВЛЕНО: Всегда INSERT новой записи при Game Over
-// + debounce сохранение во время игры (только если счёт выше личного лучшего в базе)
-let saveTimeout=null;
-let lastSavedScore=0;
-
-function scheduleAutoSave(){
-  if(saveTimeout)clearTimeout(saveTimeout);
-  saveTimeout=setTimeout(()=>autoSaveDuringGame(),1500);
-}
-
-// Сохранение ВО ВРЕМЯ игры: только если превзошёл свой предыдущий лучший
+let saveTimeout=null;let lastSavedScore=0;
+function scheduleAutoSave(){if(saveTimeout)clearTimeout(saveTimeout);saveTimeout=setTimeout(()=>autoSaveDuringGame(),1500)}
 async function autoSaveDuringGame(){
-  const uid=getTgUserId();if(!supabaseClient||!uid||score<=0||score<=lastSavedScore)return;
-  lastSavedScore=score;
-  try{
-    const{data:ex}=await supabaseClient.from('leaderboard')
-      .select('id,score').eq('user_id',uid).eq('radius',CURRENT_RADIUS)
-      .order('score',{ascending:false}).limit(1);
-    if(ex&&ex.length>0&&score>ex[0].score){
-      await supabaseClient.from('leaderboard').update({score,nick:getDefaultNick()}).eq('id',ex[0].id);
-      console.log('[DB] ✅ Live updated',score);
-    }else if(!ex||!ex.length){
-      await supabaseClient.from('leaderboard').insert({nick:getDefaultNick(),score,radius:CURRENT_RADIUS,user_id:uid});
-      console.log('[DB] ✅ Live inserted',score);
-    }
-  }catch(e){console.error('[DB] ❌ LiveSave:',e.message)}
+  const uid=getTgUserId();if(!supabaseClient||!uid||score<=0||score<=lastSavedScore)return;lastSavedScore=score;
+  try{const{data:ex}=await supabaseClient.from('leaderboard').select('id,score').eq('user_id',uid).eq('radius',CURRENT_RADIUS).order('score',{ascending:false}).limit(1);
+  if(ex&&ex.length>0&&score>ex[0].score){await supabaseClient.from('leaderboard').update({score,nick:getDefaultNick()}).eq('id',ex[0].id);console.log('[DB] ✅ Live updated',score)}
+  else if(!ex||!ex.length){await supabaseClient.from('leaderboard').insert({nick:getDefaultNick(),score,radius:CURRENT_RADIUS,user_id:uid});console.log('[DB] ✅ Live inserted',score)}}catch(e){console.error('[DB] ❌ LiveSave:',e.message)}
 }
-
-// Сохранение при GAME OVER: всегда новая запись (для топ-10)
 async function saveGameOverScore(sc,radius){
-  const uid=getTgUserId();if(!supabaseClient||!uid||sc<=0)return;
-  const nick=getDefaultNick();
-  try{
-    // Проверяем есть ли уже запись с таким же или большим счётом от этого игрока на этом поле
-    const{data:ex}=await supabaseClient.from('leaderboard')
-      .select('id,score').eq('user_id',uid).eq('radius',radius)
-      .gte('score',sc).limit(1);
-    if(ex&&ex.length>0){
-      // Уже есть результат >= текущего, обновляем его
-      await supabaseClient.from('leaderboard').update({score:sc,nick}).eq('id',ex[0].id);
-      console.log('[DB] ✅ GameOver updated existing',sc);
-    }else{
-      // Новая запись в топ
-      await supabaseClient.from('leaderboard').insert({nick,score:sc,radius,user_id:uid});
-      console.log('[DB] ✅ GameOver new entry',sc);
-    }
-    lastSavedScore=sc;
-  }catch(e){console.error('[DB] ❌ GameOverSave:',e.message)}
+  const uid=getTgUserId();if(!supabaseClient||!uid||sc<=0)return;const nick=getDefaultNick();
+  try{const{data:ex}=await supabaseClient.from('leaderboard').select('id,score').eq('user_id',uid).eq('radius',radius).gte('score',sc).limit(1);
+  if(ex&&ex.length>0){await supabaseClient.from('leaderboard').update({score:sc,nick}).eq('id',ex[0].id);console.log('[DB] ✅ GameOver updated',sc)}
+  else{await supabaseClient.from('leaderboard').insert({nick,score:sc,radius,user_id:uid});console.log('[DB] ✅ GameOver new',sc)}
+  lastSavedScore=sc}catch(e){console.error('[DB] ❌ GameOverSave:',e.message)}
 }
-
 async function saveScoreWithNick(nick,sc,radius){
   const uid=getTgUserId();if(!supabaseClient||!uid||!nick)return;
-  try{
-    const{data:ex}=await supabaseClient.from('leaderboard')
-      .select('id').eq('user_id',uid).eq('radius',radius)
-      .order('score',{ascending:false}).limit(1);
-    if(ex&&ex.length>0){
-      await supabaseClient.from('leaderboard').update({nick:nick.trim(),score:Math.max(sc,0)}).eq('id',ex[0].id);
-    }else{
-      await supabaseClient.from('leaderboard').insert({nick:nick.trim(),score:sc,radius,user_id:uid});
-    }
-    console.log('[DB] ✅ Nick saved:',nick);
-  }catch(e){console.error('[DB] ❌ SaveNick:',e.message)}
+  try{const{data:ex}=await supabaseClient.from('leaderboard').select('id').eq('user_id',uid).eq('radius',radius).order('score',{ascending:false}).limit(1);
+  if(ex&&ex.length>0){await supabaseClient.from('leaderboard').update({nick:nick.trim(),score:Math.max(sc,0)}).eq('id',ex[0].id)}
+  else{await supabaseClient.from('leaderboard').insert({nick:nick.trim(),score:sc,radius,user_id:uid})}
+  console.log('[DB] ✅ Nick saved:',nick)}catch(e){console.error('[DB] ❌ SaveNick:',e.message)}
 }
-
 async function saveShareEvent(rt){const uid=getTgUserId();if(!supabaseClient||!uid)return;try{await supabaseClient.from('share_events').insert({sender_id:uid,recipient_type:rt||null,score,radius:CURRENT_RADIUS})}catch(e){}}
-
-// ТОП-10 на каждое поле
 async function loadLeaderboard(radius){
   if(!supabaseClient)return null;
-  try{
-    let query=supabaseClient.from('leaderboard')
-      .select('nick,score,radius,user_id')
-      .order('score',{ascending:false})
-      .limit(10);
-    if(radius)query=query.eq('radius',radius);
-    const{data,error}=await query;
-    if(error){console.error('[DB] LB error:',error.message);return null}
-    console.log('[DB] ✅ LB loaded:',data?data.length:0,'rows, radius:',radius||'all');
-    return data;
-  }catch(e){return null}
+  try{let query=supabaseClient.from('leaderboard').select('nick,score,radius,user_id').order('score',{ascending:false}).limit(10);
+  if(radius)query=query.eq('radius',radius);
+  const{data,error}=await query;if(error){console.error('[DB] LB error:',error.message);return null}return data}catch(e){return null}
 }
-
-async function getPersonalBest(){
-  const uid=getTgUserId();if(!supabaseClient||!uid)return null;
-  try{
-    const{data,error}=await supabaseClient.from('leaderboard')
-      .select('score').eq('user_id',uid).eq('radius',CURRENT_RADIUS)
-      .order('score',{ascending:false}).limit(1);
-    return(error||!data||!data.length)?null:data[0].score;
-  }catch(e){return null}
-}
-
+async function getPersonalBest(){const uid=getTgUserId();if(!supabaseClient||!uid)return null;try{const{data,error}=await supabaseClient.from('leaderboard').select('score').eq('user_id',uid).eq('radius',CURRENT_RADIUS).order('score',{ascending:false}).limit(1);return(error||!data||!data.length)?null:data[0].score}catch(e){return null}}
 function renderLBRows(rows,targetEl){
   const myId=getTgUserId();
   if(!rows||!rows.length){targetEl.innerHTML='<div class="lb-empty">Пока нет результатов.<br>Начните играть!</div>';return}
   let h='<div class="lb-header"><span># Игрок</span><span>Поле / Счёт</span></div>';
-  rows.forEach((e,i)=>{
-    const isMe=myId&&e.user_id===myId;
-    h+='<div class="lb-row'+(i===0?' top1':'')+(isMe?' me':'')+'"><span>'+(i+1)+'. '+e.nick+'</span><span>'+e.radius+' | '+e.score+'</span></div>';
-  });
+  rows.forEach((e,i)=>{const isMe=myId&&e.user_id===myId;h+='<div class="lb-row'+(i===0?' top1':'')+(isMe?' me':'')+'"><span>'+(i+1)+'. '+e.nick+'</span><span>'+e.radius+' | '+e.score+'</span></div>'});
   targetEl.innerHTML=h;
 }
 
@@ -325,16 +403,7 @@ function loadSessionForRadius(r){
   return true}catch(e){return false}
 }
 function clearSessionForRadius(r){localStorage.removeItem(sessionKey(r))}
-function newGame(){
-  clearSessionForRadius(CURRENT_RADIUS);clearLayers();
-  nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;lastSavedScore=0;
-  document.getElementById('score').textContent='0';
-  document.getElementById('overlay').classList.remove('active');
-  document.getElementById('nickname-form').style.display='none';
-  buildGrid(parseInt(radiusSelect.value));
-  for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();
-  saveSession();haptic('light');
-}
+function newGame(){clearSessionForRadius(CURRENT_RADIUS);clearLayers();nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;lastSavedScore=0;document.getElementById('score').textContent='0';document.getElementById('overlay').classList.remove('active');document.getElementById('nickname-form').style.display='none';buildGrid(parseInt(radiusSelect.value));for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();saveSession();haptic('light')}
 function switchRadius(newR){if(tiles.size>0)saveSession();const restored=loadSessionForRadius(newR);if(!restored){clearLayers();nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;lastSavedScore=0;document.getElementById('score').textContent='0';document.getElementById('overlay').classList.remove('active');document.getElementById('nickname-form').style.display='none';buildGrid(newR);for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();saveSession()}haptic('light')}
 function renderEmptyGrid(){gridLayer.innerHTML='';for(const c of GRID){const el=document.createElement('div');el.className='hex empty';positionEl(el,c.q,c.r);gridLayer.appendChild(el)}}
 function emptyCells(){const occ=new Set();for(const t of tiles.values())occ.add(key(t.q,t.r));return GRID.filter(c=>!occ.has(key(c.q,c.r)))}
@@ -342,19 +411,7 @@ function addTile(q,r,value){const id=nextTileId++;const el=document.createElemen
 function addRandomTile(){const empty=emptyCells();if(!empty.length)return;const cell=empty[Math.floor(Math.random()*empty.length)];addTile(cell.q,cell.r,Math.random()<.9?2:4)}
 function getLines(dir){const{dq,dr}=DIRECTIONS[dir],lines={};for(const c of GRID){let lid;if(dir===0||dir===3)lid='q='+c.q;else if(dir===1||dir===4)lid='s='+(c.q+c.r);else lid='r='+c.r;if(!lines[lid])lines[lid]=[];lines[lid].push(c)}for(const k in lines)lines[k].sort((a,b)=>(a.q*dq+a.r*dr)-(b.q*dq+b.r*dr));return Object.values(lines)}
 function canStillPlay(){if(emptyCells().length>0)return true;const tl=Array.from(tiles.values());for(const t of tl)for(const d of DIRECTIONS){const nq=t.q+d.dq,nr=t.r+d.dr;if(!inGrid(nq,nr))continue;for(const o of tl)if(o.id!==t.id&&o.q===nq&&o.r===nr&&o.value===t.value)return true}return false}
-
-function finishTurn(){
-  saveSession();
-  if(!canStillPlay()){
-    gameOver=true;SFX.lose();haptic('error');saveBestLocal();
-    // ИСПРАВЛЕНО: При Game Over сохраняем как новую запись в топ-10
-    saveGameOverScore(score,CURRENT_RADIUS);
-    saveLBLocal(getDefaultNick(),score);
-    saveSession();setTimeout(()=>showOverlay('Игра окончена','Финальный счёт: '+score,false),350);
-  }
-  isAnimating=false;
-}
-
+function finishTurn(){saveSession();if(!canStillPlay()){gameOver=true;SFX.lose();haptic('error');saveBestLocal();saveGameOverScore(score,CURRENT_RADIUS);saveLBLocal(getDefaultNick(),score);saveSession();setTimeout(()=>showOverlay('Игра окончена','Финальный счёт: '+score,false),350)}isAnimating=false}
 function move(dir){
   if(gameOver||isAnimating)return;const{dq,dr}=DIRECTIONS[dir],lines=getLines(dir);
   const vBoard=new Map();for(const t of tiles.values())vBoard.set(key(t.q,t.r),t.id);
@@ -364,15 +421,15 @@ function move(dir){
   setTimeout(()=>{for(const mg of merges){const s=tiles.get(mg.survivorId),c=tiles.get(mg.consumedId);if(c){c.el.remove();tiles.delete(mg.consumedId)}s.value=mg.newValue;s.el.textContent=mg.newValue;s.el.dataset.value=mg.newValue;s.el.classList.remove('merged-tile','big-flash');void s.el.offsetWidth;s.el.classList.add('merged-tile');SFX.merge(mg.newValue);if(mg.newValue>=256){s.el.classList.add('big-flash');setTimeout(()=>s.el.classList.remove('big-flash'),600);haptic('rigid')}score+=mg.newValue}document.getElementById('score').textContent=score;saveBestLocal();scheduleAutoSave();for(const t of tiles.values())if(t.value>=2048&&!won){won=true;SFX.win();haptic('success');showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true);saveSession()}if(magnetEnabled){cascadeNeighborMerges()}else{addRandomTile();finishTurn()}},190);
 }
 function findNeighborPairs(){const tl=Array.from(tiles.values()),used=new Set(),pairs=[];tl.sort((a,b)=>b.value-a.value);for(const t of tl){if(used.has(t.id))continue;for(const d of DIRECTIONS){const nq=t.q+d.dq,nr=t.r+d.dr;if(!inGrid(nq,nr))continue;const nb=tl.find(o=>o.id!==t.id&&!used.has(o.id)&&o.q===nq&&o.r===nr&&o.value===t.value);if(nb){pairs.push([t,nb]);used.add(t.id);used.add(nb.id);break}}}return pairs}
-function spawnSparks(q,r,n=6){const p=hexToPixel(q,r);for(let i=0;i<n;i++){const s=document.createElement('div');s.className='spark';const a=(i/n)*Math.PI*2+Math.random()*.5,dist=30+Math.random()*20;s.style.left=(cx+p.x)+'px';s.style.top=(cy+p.y)+'px';s.style.setProperty('--dx',Math.cos(a)*dist+'px');s.style.setProperty('--dy',Math.sin(a)*dist+'px');tilesLayer.appendChild(s);setTimeout(()=>s.remove(),600)}}
-function performNeighborMerges(pairs){SFX.cascade();haptic('medium');for(const[t1,t2]of pairs){t2.el.classList.add('consumed-neighbor');setTimeout(()=>{t2.el.remove();tiles.delete(t2.id)},250);const nv=t1.value*2;t1.value=nv;t1.el.textContent=nv;t1.el.dataset.value=nv;t1.el.classList.remove('neighbor-merged','big-flash');void t1.el.offsetWidth;t1.el.classList.add('neighbor-merged');if(nv>=256){t1.el.classList.add('big-flash');setTimeout(()=>t1.el.classList.remove('big-flash'),600)}spawnSparks(t1.q,t1.r,8);score+=nv}document.getElementById('score').textContent=score;saveBestLocal();scheduleAutoSave();for(const t of tiles.values())if(t.value>=2048&&!won){won=true;SFX.win();haptic('success');showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true);saveSession()}}
+function spawnSparks(q,r,n=8){const p=hexToPixel(q,r);for(let i=0;i<n;i++){const s=document.createElement('div');s.className='spark';const a=(i/n)*Math.PI*2+Math.random()*.5,dist=30+Math.random()*25;s.style.left=(cx+p.x)+'px';s.style.top=(cy+p.y)+'px';s.style.setProperty('--dx',Math.cos(a)*dist+'px');s.style.setProperty('--dy',Math.sin(a)*dist+'px');tilesLayer.appendChild(s);setTimeout(()=>s.remove(),700)}}
+function performNeighborMerges(pairs){SFX.cascade();haptic('medium');for(const[t1,t2]of pairs){t2.el.classList.add('consumed-neighbor');setTimeout(()=>{t2.el.remove();tiles.delete(t2.id)},300);const nv=t1.value*2;t1.value=nv;t1.el.textContent=nv;t1.el.dataset.value=nv;t1.el.classList.remove('neighbor-merged','big-flash');void t1.el.offsetWidth;t1.el.classList.add('neighbor-merged');if(nv>=256){t1.el.classList.add('big-flash');setTimeout(()=>t1.el.classList.remove('big-flash'),600)}spawnSparks(t1.q,t1.r,10);score+=nv}document.getElementById('score').textContent=score;saveBestLocal();scheduleAutoSave();for(const t of tiles.values())if(t.value>=2048&&!won){won=true;SFX.win();haptic('success');showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true);saveSession()}}
 function cascadeNeighborMerges(){const pairs=findNeighborPairs();if(pairs.length===0){addRandomTile();finishTurn();return}performNeighborMerges(pairs);setTimeout(cascadeNeighborMerges,300)}
 
 // === ПОДЕЛИТЬСЯ ===
 const APP_LINK='https://t.me/hex2048_bot/play';
 function shareResult(){
   const cc=3*CURRENT_RADIUS*CURRENT_RADIUS+3*CURRENT_RADIUS+1;
-  const text='🎮 Я набрал '+score+' очков в Hex2048 (поле '+CURRENT_RADIUS+', '+cc+' ячеек)!\nСможешь побить мой рекорд?\n\n🕹 Играть: '+APP_LINK;
+  const text='💎 Я набрал '+score+' очков в Hex2048 Gems (поле '+CURRENT_RADIUS+', '+cc+' ячеек)!\nСможешь побить мой рекорд?\n\n🕹 Играть: '+APP_LINK;
   saveShareEvent(null);
   if(isTWA&&tg){try{tg.switchInlineQuery(text,['users','groups','channels']);haptic('success');return}catch(e){}}
   if(isTWA&&tg){try{tg.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(APP_LINK)+'&text='+encodeURIComponent(text));haptic('success');return}catch(e){}}
