@@ -3,225 +3,239 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Hex2048 Gems</title>
+<title>Hex2048 Diamonds</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  :root{--bg:#0d0d1a;--bg-grad:radial-gradient(ellipse at center,#1a1a3e 0%,#0d0d1a 70%);--panel:#151530;--border:#2a2a5e;--accent:#f7b733;--text:#eee;--text-sec:#888;--empty:#1a1a35;--overlay:rgba(13,13,26,.96)}
-  [data-theme="light"]{--bg:#f5f0e8;--bg-grad:radial-gradient(ellipse at center,#fffdf5 0%,#f5f0e8 70%);--panel:#e8e0d0;--border:#c8b898;--accent:#8f7a66;--text:#4a4035;--text-sec:#9a8a70;--empty:#ddd5c5;--overlay:rgba(245,240,232,.96)}
+  :root{--bg:#080810;--bg-grad:radial-gradient(ellipse at center,#12122a 0%,#080810 70%);--panel:#10102a;--border:#252560;--accent:#f7b733;--text:#eee;--text-sec:#777;--empty:rgba(255,255,255,.04);--overlay:rgba(8,8,16,.97)}
+  [data-theme="light"]{--bg:#f0ece4;--bg-grad:radial-gradient(ellipse at center,#faf8f2 0%,#f0ece4 70%);--panel:#e5ddd0;--border:#c8b898;--accent:#8f7a66;--text:#3a3025;--text-sec:#9a8a70;--empty:rgba(0,0,0,.05);--overlay:rgba(240,236,228,.97)}
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{width:100%;height:100%;overflow:hidden;overscroll-behavior:none;position:fixed;top:0;left:0;right:0;bottom:0;margin:0;padding:0}
   body{background:var(--bg-grad);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;user-select:none;-webkit-user-select:none;padding-top:max(env(safe-area-inset-top),8px);padding-bottom:max(env(safe-area-inset-bottom),8px);padding-left:8px;padding-right:8px;transition:background .3s,color .3s;min-height:100vh;min-height:100dvh;height:100%}
-  h1{font-size:1.8rem;margin:.2em 0;background:linear-gradient(135deg,#ff6bcb,#f7b733,#4deeea);-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:0;text-shadow:none}
+  h1{font-size:1.8rem;margin:.2em 0;background:linear-gradient(135deg,#fff 0%,#a8edea 30%,#fed6e3 60%,#fff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;flex-shrink:0}
   .header{display:flex;align-items:center;gap:.4em;margin-bottom:.3em;flex-wrap:wrap;justify-content:center;flex-shrink:0}
-  .score-box{background:var(--panel);border:2px solid var(--border);border-radius:8px;padding:.2em .6em;text-align:center;min-width:55px;transition:background .3s,border-color .3s}
+  .score-box{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:.2em .6em;text-align:center;min-width:55px;transition:background .3s,border-color .3s}
   .score-box .label{font-size:.5rem;color:var(--text-sec);text-transform:uppercase;letter-spacing:1px}
   .score-box .value{font-size:1.1rem;font-weight:bold;color:var(--accent)}
-  .diff-select{background:var(--panel);color:var(--text);border:2px solid var(--border);padding:.2em .4em;border-radius:6px;font-size:.75rem;cursor:pointer;outline:none}
+  .diff-select{background:var(--panel);color:var(--text);border:1px solid var(--border);padding:.2em .4em;border-radius:6px;font-size:.75rem;cursor:pointer;outline:none}
   .btn{background:linear-gradient(135deg,var(--accent),#fc4a1a);border:none;color:#fff;font-size:.75rem;font-weight:bold;padding:.3em .8em;border-radius:6px;cursor:pointer;transition:transform .15s}
   .btn:active{transform:scale(.95)}
   .btn-share{background:linear-gradient(135deg,#6c5ce7,#a29bfe)!important;margin-bottom:.5em}
-  .icon-btn{width:32px;height:32px;border-radius:6px;border:2px solid var(--border);background:var(--panel);color:var(--accent);font-size:1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .3s,background .3s,border-color .3s}
+  .icon-btn{width:32px;height:32px;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--accent);font-size:1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:opacity .3s,background .3s,border-color .3s}
   .icon-btn:active{transform:scale(.9)}.icon-btn.muted{opacity:.5}.icon-btn.active{background:var(--accent);color:#1a1a2e;border-color:var(--accent)}
   #game-wrapper{flex:1;width:100%;min-height:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
   #game-container{position:relative;flex-shrink:0}
   #grid-layer,#tiles-layer{position:absolute;inset:0;pointer-events:none}
   #grid-layer{z-index:0}#tiles-layer{z-index:1}
 
-  /* === БАЗОВАЯ ПЛИТКА-КРИСТАЛЛ === */
+  /* === БРИЛЛИАНТ: БАЗОВАЯ СТРУКТУРА === */
   .hex{
     position:absolute;width:70px;height:60.62px;
     clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);
     display:flex;align-items:center;justify-content:center;
     font-size:1.15rem;font-weight:800;
-    transition:left .18s ease-out,top .18s ease-out,background .2s;
-    text-shadow:0 1px 3px rgba(0,0,0,.5),0 0 8px rgba(255,255,255,.3);
+    transition:left .18s ease-out,top .18s ease-out;
+    color:#fff;
+    text-shadow:0 1px 2px rgba(0,0,0,.6),0 0 10px rgba(255,255,255,.4);
   }
-  /* Верхняя грань — блик */
+  /* Слой 1: Верхняя грань — основной блик и преломление */
   .hex::before{
     content:'';position:absolute;inset:0;clip-path:inherit;
-    background:linear-gradient(170deg,rgba(255,255,255,.7) 0%,rgba(255,255,255,.2) 25%,transparent 50%,rgba(0,0,0,.15) 75%,rgba(0,0,0,.3) 100%);
-    pointer-events:none;z-index:1;
-  }
-  /* Внутренняя грань — глубина */
-  .hex::after{
-    content:'';position:absolute;
-    top:6px;left:8px;right:8px;bottom:6px;
-    clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);
-    background:linear-gradient(135deg,rgba(255,255,255,.35) 0%,rgba(255,255,255,.05) 40%,transparent 60%);
+    background:
+      linear-gradient(165deg,rgba(255,255,255,.85) 0%,rgba(255,255,255,.3) 18%,transparent 40%,transparent 60%,rgba(0,0,0,.12) 80%,rgba(0,0,0,.25) 100%),
+      linear-gradient(105deg,transparent 30%,rgba(255,255,255,.15) 45%,rgba(255,255,255,.25) 50%,rgba(255,255,255,.15) 55%,transparent 70%);
     pointer-events:none;z-index:2;
   }
+  /* Слой 2: Внутренняя фасетка — глубина огранки */
+  .hex::after{
+    content:'';position:absolute;
+    top:7px;left:9px;right:9px;bottom:7px;
+    clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);
+    background:linear-gradient(150deg,rgba(255,255,255,.4) 0%,rgba(255,255,255,.08) 35%,transparent 55%,rgba(255,255,255,.06) 100%);
+    border:1px solid rgba(255,255,255,.12);
+    pointer-events:none;z-index:3;
+  }
 
-  /* === ПУСТЫЕ ЯЧЕЙКИ — ОПРАВЫ === */
+  /* === ПУСТЫЕ ЯЧЕЙКИ — СЕРЕБРЯНЫЕ ОПРАВЫ === */
   .hex.empty{
     background:var(--empty);
     color:transparent;
-    filter:none;
     z-index:0;
-    border:none;
-    box-shadow:inset 0 0 8px rgba(255,255,255,.03);
+    box-shadow:inset 0 0 6px rgba(255,255,255,.03);
   }
   .hex.empty::before{
-    background:linear-gradient(170deg,rgba(255,255,255,.06) 0%,transparent 40%,rgba(0,0,0,.1) 100%);
+    background:linear-gradient(165deg,rgba(255,255,255,.07) 0%,transparent 35%,rgba(255,255,255,.03) 100%);
   }
-  .hex.empty::after{display:none}
+  .hex.empty::after{
+    border:1px solid rgba(255,255,255,.06);
+    background:transparent;
+  }
 
   .hex.tile{z-index:2}
 
-  /* === АНИМАЦИИ КРИСТАЛЛОВ === */
-  .hex.new-tile{animation:gemAppear .4s cubic-bezier(.175,.885,.32,1.275)}
-  .hex.merged-tile{animation:gemMerge .4s ease-out}
-  .hex.neighbor-merged{animation:gemNeighborMerge .5s ease-out}
-  .hex.consumed-neighbor{animation:gemShatter .3s ease-out forwards}
+  /* === АНИМАЦИИ БРИЛЛИАНТОВ === */
+  .hex.new-tile{animation:diamondAppear .45s cubic-bezier(.175,.885,.32,1.275)}
+  .hex.merged-tile{animation:diamondMerge .45s ease-out}
+  .hex.neighbor-merged{animation:diamondNeighborMerge .55s ease-out}
+  .hex.consumed-neighbor{animation:diamondShatter .35s ease-out forwards}
 
-  @keyframes gemAppear{
-    0%{transform:scale(0) rotate(-60deg);opacity:0;filter:brightness(3)}
-    50%{transform:scale(1.2) rotate(10deg);filter:brightness(1.8)}
+  @keyframes diamondAppear{
+    0%{transform:scale(0) rotate(-90deg);opacity:0;filter:brightness(4) blur(2px)}
+    40%{transform:scale(1.25) rotate(15deg);filter:brightness(2) blur(0)}
+    70%{transform:scale(.95) rotate(-3deg)}
     100%{transform:scale(1) rotate(0);opacity:1;filter:brightness(1)}
   }
-  @keyframes gemMerge{
+  @keyframes diamondMerge{
     0%{transform:scale(1);filter:brightness(1)}
-    25%{transform:scale(1.35);filter:brightness(2) drop-shadow(0 0 15px rgba(255,255,255,.8))}
-    50%{transform:scale(.9);filter:brightness(1.3)}
+    20%{transform:scale(1.4);filter:brightness(3) drop-shadow(0 0 20px rgba(255,255,255,.9))}
+    45%{transform:scale(.85);filter:brightness(1.5)}
     100%{transform:scale(1);filter:brightness(1)}
   }
-  @keyframes gemNeighborMerge{
+  @keyframes diamondNeighborMerge{
     0%{transform:scale(1)}
-    20%{transform:scale(1.4) rotate(8deg);filter:brightness(2.5) drop-shadow(0 0 20px rgba(255,220,100,.9))}
-    50%{transform:scale(.85) rotate(-3deg)}
+    15%{transform:scale(1.45) rotate(10deg);filter:brightness(3) drop-shadow(0 0 25px rgba(255,255,255,1))}
+    40%{transform:scale(.8) rotate(-5deg)}
     100%{transform:scale(1) rotate(0)}
   }
-  @keyframes gemShatter{
+  @keyframes diamondShatter{
     0%{transform:scale(1);opacity:1;filter:brightness(2)}
-    50%{transform:scale(1.2) rotate(15deg);opacity:.6;filter:brightness(3)}
-    100%{transform:scale(0) rotate(45deg);opacity:0;filter:brightness(5)}
+    40%{transform:scale(1.3) rotate(20deg);opacity:.7;filter:brightness(4)}
+    100%{transform:scale(0) rotate(60deg);opacity:0;filter:brightness(6)}
   }
 
   /* === ЦВЕТА ДРАГОЦЕННЫХ КАМНЕЙ === */
+  /* 2 — Горный хрусталь */
   .hex[data-value="2"]{
-    background:linear-gradient(145deg,#e8e0d0,#d4c8b0,#c8b898);
-    color:#6a5d45;
+    background:linear-gradient(145deg,rgba(220,215,200,.85),rgba(195,185,165,.75),rgba(175,165,145,.65));
     filter:drop-shadow(0 2px 4px rgba(0,0,0,.3));
-    text-shadow:0 1px 0 rgba(255,255,255,.4);
+    text-shadow:0 1px 1px rgba(0,0,0,.3),0 0 6px rgba(255,255,255,.3);
+    color:#5a5040;
   }
+  /* 4 — Хризолит */
   .hex[data-value="4"]{
-    background:linear-gradient(145deg,#c8e6c9,#a5d6a7,#81c784);
-    color:#2e5a2e;
-    filter:drop-shadow(0 2px 6px rgba(76,175,80,.3));
-    text-shadow:0 1px 0 rgba(255,255,255,.4);
+    background:linear-gradient(145deg,rgba(180,220,140,.8),rgba(140,195,100,.7),rgba(110,170,70,.6));
+    filter:drop-shadow(0 2px 6px rgba(100,180,50,.3));
+    color:#2a4a15;
   }
+  /* 8 — Сапфир */
   .hex[data-value="8"]{
-    background:linear-gradient(145deg,#bbdefb,#64b5f6,#42a5f5);
-    color:#fff;
-    filter:drop-shadow(0 3px 8px rgba(33,150,243,.4));
+    background:linear-gradient(145deg,rgba(100,160,240,.8),rgba(50,120,220,.7),rgba(30,90,200,.6));
+    filter:drop-shadow(0 3px 8px rgba(30,90,200,.4));
   }
+  /* 16 — Аметист */
   .hex[data-value="16"]{
-    background:linear-gradient(145deg,#e1bee7,#ce93d8,#ba68c8);
-    color:#fff;
-    filter:drop-shadow(0 3px 8px rgba(156,39,176,.4));
+    background:linear-gradient(145deg,rgba(190,130,220,.8),rgba(160,80,200,.7),rgba(130,50,180,.6));
+    filter:drop-shadow(0 3px 8px rgba(130,50,180,.4));
   }
+  /* 32 — Оранжевый гранат */
   .hex[data-value="32"]{
-    background:linear-gradient(145deg,#ffccbc,#ff8a65,#ff7043);
-    color:#fff;
-    filter:drop-shadow(0 3px 10px rgba(255,87,34,.4));
+    background:linear-gradient(145deg,rgba(240,150,80,.8),rgba(220,110,40,.7),rgba(200,80,20,.6));
+    filter:drop-shadow(0 3px 10px rgba(200,80,20,.4));
   }
+  /* 64 — Рубин */
   .hex[data-value="64"]{
-    background:linear-gradient(145deg,#ef9a9a,#ef5350,#e53935);
-    color:#fff;
-    filter:drop-shadow(0 4px 12px rgba(229,57,53,.5));
+    background:linear-gradient(145deg,rgba(230,80,80,.8),rgba(200,40,40,.7),rgba(170,20,20,.6));
+    filter:drop-shadow(0 4px 12px rgba(170,20,20,.5));
   }
+  /* 128 — Цитрин */
   .hex[data-value="128"]{
-    background:linear-gradient(145deg,#fff9c4,#fff176,#fdd835);
-    color:#5d4e00;font-size:1rem;
-    filter:drop-shadow(0 4px 12px rgba(253,216,53,.5));
+    background:linear-gradient(145deg,rgba(255,230,100,.8),rgba(240,200,50,.7),rgba(220,170,20,.6));
+    filter:drop-shadow(0 4px 12px rgba(220,170,20,.5));
+    font-size:1rem;
   }
+  /* 256 — Изумруд */
   .hex[data-value="256"]{
-    background:linear-gradient(145deg,#b2dfdb,#4db6ac,#00897b);
-    color:#fff;font-size:1rem;
-    filter:drop-shadow(0 0 10px rgba(0,137,123,.6));
+    background:linear-gradient(145deg,rgba(80,200,170,.8),rgba(40,170,140,.7),rgba(10,140,110,.6));
+    filter:drop-shadow(0 0 10px rgba(10,140,110,.6));
+    font-size:1rem;
     animation:gemPulse 2.5s ease-in-out infinite;
   }
+  /* 512 — Розовый алмаз */
   .hex[data-value="512"]{
-    background:linear-gradient(145deg,#f8bbd0,#f06292,#ec407a);
-    color:#fff;font-size:1rem;
-    filter:drop-shadow(0 0 12px rgba(236,64,122,.6));
+    background:linear-gradient(145deg,rgba(240,130,170,.8),rgba(220,80,140,.7),rgba(200,50,120,.6));
+    filter:drop-shadow(0 0 12px rgba(200,50,120,.6));
+    font-size:1rem;
     animation:gemPulse 2.2s ease-in-out infinite;
   }
+  /* 1024 — Танзанит */
   .hex[data-value="1024"]{
-    background:linear-gradient(145deg,#d1c4e9,#9575cd,#7e57c2);
-    color:#fff;font-size:.9rem;
-    filter:drop-shadow(0 0 14px rgba(126,87,194,.7));
+    background:linear-gradient(145deg,rgba(130,110,220,.8),rgba(100,70,200,.7),rgba(70,40,180,.6));
+    filter:drop-shadow(0 0 14px rgba(70,40,180,.7));
+    font-size:.9rem;
     animation:gemPulse 2s ease-in-out infinite;
   }
+  /* 2048 — Золотой берилл */
   .hex[data-value="2048"]{
-    background:linear-gradient(145deg,#ffe082,#ffc107,#ff8f00);
-    color:#fff;font-size:.9rem;
-    filter:drop-shadow(0 0 18px rgba(255,143,0,.8));
+    background:linear-gradient(145deg,rgba(255,210,80,.85),rgba(240,180,30,.75),rgba(220,150,0,.65));
+    filter:drop-shadow(0 0 18px rgba(220,150,0,.8));
+    font-size:.9rem;
     animation:gemRadiance 1.8s ease-in-out infinite;
   }
+  /* 4096 — Аквамарин */
   .hex[data-value="4096"]{
-    background:linear-gradient(145deg,#80deea,#26c6da,#00acc1);
-    color:#fff;font-size:.9rem;
-    filter:drop-shadow(0 0 20px rgba(0,172,193,.8));
+    background:linear-gradient(145deg,rgba(80,210,230,.85),rgba(40,180,210,.75),rgba(0,150,190,.65));
+    filter:drop-shadow(0 0 20px rgba(0,150,190,.8));
+    font-size:.9rem;
     animation:gemRadiance 1.6s ease-in-out infinite;
   }
+  /* 8192 — Александрит */
   .hex[data-value="8192"]{
-    background:linear-gradient(145deg,#ea80fc,#e040fb,#d500f9);
-    color:#fff;font-size:.9rem;
-    filter:drop-shadow(0 0 22px rgba(213,0,249,.9));
+    background:linear-gradient(145deg,rgba(200,100,240,.85),rgba(170,50,220,.75),rgba(140,20,200,.65));
+    filter:drop-shadow(0 0 22px rgba(140,20,200,.9));
+    font-size:.9rem;
     animation:gemRadiance 1.4s ease-in-out infinite;
   }
   .hex.higher{
-    background:linear-gradient(145deg,#ff80ab,#ff4081,#f50057);
-    color:#fff;font-size:.8rem;
-    filter:drop-shadow(0 0 25px rgba(245,0,87,.9));
+    background:linear-gradient(145deg,rgba(255,100,150,.85),rgba(240,50,100,.75),rgba(220,20,70,.65));
+    filter:drop-shadow(0 0 25px rgba(220,20,70,.9));
+    font-size:.8rem;
     animation:gemRadiance 1.2s ease-in-out infinite;
   }
 
   @keyframes gemPulse{
     0%,100%{filter:drop-shadow(0 0 8px currentColor) brightness(1)}
-    50%{filter:drop-shadow(0 0 18px currentColor) brightness(1.2)}
+    50%{filter:drop-shadow(0 0 20px currentColor) brightness(1.25)}
   }
   @keyframes gemRadiance{
     0%,100%{filter:drop-shadow(0 0 12px currentColor) brightness(1);transform:scale(1)}
-    50%{filter:drop-shadow(0 0 25px currentColor) brightness(1.3);transform:scale(1.03)}
+    50%{filter:drop-shadow(0 0 28px currentColor) brightness(1.35);transform:scale(1.04)}
   }
 
   /* Вспышка при крупном слиянии */
-  .hex.big-flash::before{animation:gemFlashOverlay .7s ease-out}
-  @keyframes gemFlashOverlay{
-    0%{background:rgba(255,255,255,1);filter:brightness(3)}
-    30%{background:rgba(255,255,255,.6)}
-    100%{background:linear-gradient(170deg,rgba(255,255,255,.7) 0%,rgba(255,255,255,.2) 25%,transparent 50%,rgba(0,0,0,.15) 75%,rgba(0,0,0,.3) 100%)}
+  .hex.big-flash::before{animation:diamondFlashOverlay .7s ease-out}
+  @keyframes diamondFlashOverlay{
+    0%{background:rgba(255,255,255,1);filter:brightness(4)}
+    25%{background:rgba(255,255,255,.7)}
+    100%{background:linear-gradient(165deg,rgba(255,255,255,.85) 0%,rgba(255,255,255,.3) 18%,transparent 40%,transparent 60%,rgba(0,0,0,.12) 80%,rgba(0,0,0,.25) 100%),linear-gradient(105deg,transparent 30%,rgba(255,255,255,.15) 45%,rgba(255,255,255,.25) 50%,rgba(255,255,255,.15) 55%,transparent 70%)}
   }
 
-  /* Радужные осколки */
+  /* Ромбовидные радужные осколки */
   .spark{
-    position:absolute;width:8px;height:8px;
-    border-radius:2px;
-    background:linear-gradient(135deg,#ff6bcb,#f7b733,#4deeea,#a29bfe);
+    position:absolute;width:7px;height:7px;
+    clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);
+    background:linear-gradient(135deg,#ff6bcb,#f7b733,#4deeea,#a29bfe,#fff);
     pointer-events:none;z-index:10;
-    animation:gemSparkFly .7s ease-out forwards;
+    animation:diamondSparkFly .75s ease-out forwards;
   }
-  @keyframes gemSparkFly{
-    0%{transform:translate(-50%,-50%) scale(1) rotate(0);opacity:1}
-    100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(0) rotate(180deg);opacity:0}
+  @keyframes diamondSparkFly{
+    0%{transform:translate(-50%,-50%) scale(1.2) rotate(0);opacity:1}
+    100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(0) rotate(270deg);opacity:0}
   }
 
   .mobile-controls{display:none;margin-top:.3em;gap:3px;grid-template-columns:repeat(3,var(--btn-size,48px));grid-template-rows:repeat(2,var(--btn-size,48px));justify-content:center;align-items:center;flex-shrink:0}
-  .mobile-controls button{width:var(--btn-size,48px);height:var(--btn-size,48px);font-size:1rem;background:var(--panel);border:2px solid var(--border);color:var(--accent);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
+  .mobile-controls button{width:var(--btn-size,48px);height:var(--btn-size,48px);font-size:1rem;background:var(--panel);border:1px solid var(--border);color:var(--accent);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
   .mobile-controls button:active{background:var(--border);transform:scale(.92)}
   .mc-up{grid-column:2;grid-row:1}.mc-nw{grid-column:1;grid-row:1}.mc-ne{grid-column:3;grid-row:1}
   .mc-sw{grid-column:1;grid-row:2}.mc-down{grid-column:2;grid-row:2}.mc-se{grid-column:3;grid-row:2}
   .overlay{position:absolute;inset:0;background:var(--overlay);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;border-radius:16px;opacity:0;pointer-events:none;transition:opacity .35s;padding:1.5em}
   .overlay.active{opacity:1;pointer-events:all}
-  .overlay h2{font-size:1.6rem;margin-bottom:.3em;background:linear-gradient(135deg,#ff6bcb,#f7b733,#4deeea);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .overlay h2{font-size:1.6rem;margin-bottom:.3em;background:linear-gradient(135deg,#fff,#a8edea,#fed6e3,#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
   .overlay p{font-size:.9rem;color:var(--text-sec);margin-bottom:.7em;text-align:center}
   #nickname-form{display:none;align-items:center;gap:.4em;margin-bottom:.8em}
-  #nickname-input{padding:.35em .5em;border-radius:6px;border:2px solid var(--border);background:var(--panel);color:var(--text);font-size:.9rem;width:140px;text-align:center;outline:none;touch-action:auto}
+  #nickname-input{padding:.35em .5em;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-size:.9rem;width:140px;text-align:center;outline:none;touch-action:auto}
   #nickname-input:focus{border-color:var(--accent)}
   .lb-container{width:280px;max-height:220px;overflow-y:auto;background:var(--panel);border-radius:8px;padding:.4em;font-size:.8rem;margin-bottom:.7em;overscroll-behavior:contain}
   .lb-tabs{display:flex;gap:4px;margin-bottom:.4em}
-  .lb-tab{flex:1;padding:.3em;border-radius:6px;border:2px solid var(--border);background:transparent;color:var(--text-sec);font-size:.7rem;font-weight:bold;cursor:pointer;text-align:center;transition:all .2s}
+  .lb-tab{flex:1;padding:.3em;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text-sec);font-size:.7rem;font-weight:bold;cursor:pointer;text-align:center;transition:all .2s}
   .lb-tab.active{background:var(--accent);color:#1a1a2e;border-color:var(--accent)}
   .lb-header{display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:.25em .4em;color:var(--text-sec);margin-bottom:.15em}
   .lb-row{display:flex;justify-content:space-between;padding:.25em .4em;border-radius:4px;color:var(--text)}
@@ -277,7 +291,6 @@
 <script>
 window.onerror=(msg,url,line,col,err)=>{console.error('GAME ERROR:',msg,'at',line+':'+col,err);document.title='ERR: '+msg};
 
-// === SUPABASE ===
 const SUPABASE_URL='https://vjsxfmfjschipjdbmyix.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqc3hmbWZqc2NoaXBqZGJteWl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2OTc4NzksImV4cCI6MjA5NTI3Mzg3OX0.sGLd7bOD-XA5y2c-b0JXsTvmavX4G1YVH96dzecQbCA';
 let supabaseClient=null;
@@ -324,12 +337,10 @@ function renderLBRows(rows,targetEl){
   targetEl.innerHTML=h;
 }
 
-// === МАГНИТ ===
 const MAGNET_KEY='hex2048_magnet';let magnetEnabled=localStorage.getItem(MAGNET_KEY)!=='false';const magnetToggle=document.getElementById('magnetToggle');
 function updateMagnetIcon(){magnetToggle.classList.toggle('active',magnetEnabled)}
 magnetToggle.addEventListener('click',()=>{magnetEnabled=!magnetEnabled;localStorage.setItem(MAGNET_KEY,magnetEnabled);updateMagnetIcon();haptic('light')});updateMagnetIcon();
 
-// === ЗВУК ===
 const SOUND_KEY='hex2048_sound';let audioCtx=null;let soundEnabled=localStorage.getItem(SOUND_KEY)!=='false';const soundToggle=document.getElementById('soundToggle');
 function initAudio(){if(!audioCtx)try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume()}
 function updateSoundIcon(){soundToggle.textContent=soundEnabled?'🔊':'🔇';soundToggle.classList.toggle('muted',!soundEnabled)}
@@ -338,7 +349,6 @@ document.addEventListener('touchstart',initAudio,{once:true});document.addEventL
 function playTone(freq,type,duration,vol=.15){if(!soundEnabled||!audioCtx)return;try{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(freq,audioCtx.currentTime);g.gain.setValueAtTime(vol,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration)}catch(e){}}
 const SFX={move:()=>playTone(300,'triangle',.06,.08),merge:v=>playTone(400+Math.log2(v)*60,'sine',.15,.12),cascade:()=>playTone(800,'sine',.1,.1),win:()=>{playTone(523,'sine',.15,.15);setTimeout(()=>playTone(659,'sine',.15,.15),120);setTimeout(()=>playTone(784,'sine',.3,.15),240)},lose:()=>{playTone(300,'sawtooth',.3,.1);setTimeout(()=>playTone(200,'sawtooth',.4,.1),200)}};updateSoundIcon();
 
-// === ТЕМА ===
 const THEME_KEY='hex2048_theme';const themeToggle=document.getElementById('themeToggle');
 function setTheme(t){document.documentElement.setAttribute('data-theme',t);themeToggle.textContent=t==='dark'?'🌙':'☀️';localStorage.setItem(THEME_KEY,t)}
 function initTheme(){const s=localStorage.getItem(THEME_KEY);if(s)return setTheme(s);try{const bg=window.Telegram?.WebApp?.themeParams?.bg_color||'';if(bg&&/^#[0-3]/i.test(bg))return setTheme('dark');if(bg)return setTheme('light')}catch(e){}setTheme(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light')}
@@ -346,20 +356,17 @@ themeToggle.addEventListener('click',()=>{const c=document.documentElement.getAt
 
 document.addEventListener('touchmove',e=>{if(e.target.closest('.lb-container')||e.target.closest('#nickname-input'))return;e.preventDefault()},{passive:false});
 
-// === TWA ===
 let tg=null,isTWA=false;
 function tryExpand(){try{if(tg&&tg.expand)tg.expand()}catch(e){}}
 try{tg=window.Telegram?.WebApp;if(tg){isTWA=true;tg.ready();tryExpand();setTimeout(tryExpand,100);setTimeout(tryExpand,300);setTimeout(tryExpand,700);setTimeout(tryExpand,1500);setTimeout(tryExpand,3000);tg.MainButton.setText('🔄 Новая игра');tg.MainButton.onClick(newGame)}}catch(e){}
 function haptic(type){try{if(isTWA)tg.HapticFeedback.impactOccurred(type)}catch(e){}}
 
-// === МАСШТАБИРОВАНИЕ ===
 const wrapper=document.getElementById('game-wrapper');
 function forceRecalcLayout(){requestAnimationFrame(()=>{updateContainerSize();const empties=gridLayer.children;let idx=0;for(const c of GRID){if(idx<empties.length)positionEl(empties[idx],c.q,c.r);idx++}for(const t of tiles.values())positionEl(t.el,t.q,t.r)})}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){tryExpand();setTimeout(forceRecalcLayout,200)}});
 if(isTWA){try{tg.onEvent('viewportChanged',()=>{tryExpand();setTimeout(forceRecalcLayout,100)})}catch(e){}}
 window.addEventListener('resize',forceRecalcLayout);window.addEventListener('orientationchange',()=>setTimeout(forceRecalcLayout,500));
 
-// === ИГРА ===
 const HEX_SIZE=35,HALF_W=35,HALF_H=30.31;let CURRENT_RADIUS=2,GRID=[],cx=0,cy=0;
 const DIRECTIONS=[{dq:0,dr:-1},{dq:1,dr:-1},{dq:1,dr:0},{dq:0,dr:1},{dq:-1,dr:1},{dq:-1,dr:0}];
 const key=(q,r)=>q+','+r;
@@ -387,7 +394,6 @@ const LB_LOCAL_KEY='hex2048leaderboard';
 function loadLBLocal(){try{return JSON.parse(localStorage.getItem(LB_LOCAL_KEY)||'[]')}catch(e){return[]}}
 function saveLBLocal(nick,sc){const lb=loadLBLocal();lb.push({nick:nick.trim(),score:sc,radius:CURRENT_RADIUS,date:new Date().toLocaleDateString()});lb.sort((a,b)=>b.score-a.score);localStorage.setItem(LB_LOCAL_KEY,JSON.stringify(lb.slice(0,10)))}
 
-// === СЕССИИ ===
 function sessionKey(r){return 'hex2048_session_'+r}
 function saveSession(){const td=[];for(const t of tiles.values())td.push({q:t.q,r:t.r,value:t.value});localStorage.setItem(sessionKey(CURRENT_RADIUS),JSON.stringify({score,radius:CURRENT_RADIUS,gameOver,won,submittedNick,tiles:td,nextTileId}))}
 function clearLayers(){gridLayer.innerHTML='';tilesLayer.innerHTML='';tiles.clear()}
@@ -421,15 +427,14 @@ function move(dir){
   setTimeout(()=>{for(const mg of merges){const s=tiles.get(mg.survivorId),c=tiles.get(mg.consumedId);if(c){c.el.remove();tiles.delete(mg.consumedId)}s.value=mg.newValue;s.el.textContent=mg.newValue;s.el.dataset.value=mg.newValue;s.el.classList.remove('merged-tile','big-flash');void s.el.offsetWidth;s.el.classList.add('merged-tile');SFX.merge(mg.newValue);if(mg.newValue>=256){s.el.classList.add('big-flash');setTimeout(()=>s.el.classList.remove('big-flash'),600);haptic('rigid')}score+=mg.newValue}document.getElementById('score').textContent=score;saveBestLocal();scheduleAutoSave();for(const t of tiles.values())if(t.value>=2048&&!won){won=true;SFX.win();haptic('success');showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true);saveSession()}if(magnetEnabled){cascadeNeighborMerges()}else{addRandomTile();finishTurn()}},190);
 }
 function findNeighborPairs(){const tl=Array.from(tiles.values()),used=new Set(),pairs=[];tl.sort((a,b)=>b.value-a.value);for(const t of tl){if(used.has(t.id))continue;for(const d of DIRECTIONS){const nq=t.q+d.dq,nr=t.r+d.dr;if(!inGrid(nq,nr))continue;const nb=tl.find(o=>o.id!==t.id&&!used.has(o.id)&&o.q===nq&&o.r===nr&&o.value===t.value);if(nb){pairs.push([t,nb]);used.add(t.id);used.add(nb.id);break}}}return pairs}
-function spawnSparks(q,r,n=8){const p=hexToPixel(q,r);for(let i=0;i<n;i++){const s=document.createElement('div');s.className='spark';const a=(i/n)*Math.PI*2+Math.random()*.5,dist=30+Math.random()*25;s.style.left=(cx+p.x)+'px';s.style.top=(cy+p.y)+'px';s.style.setProperty('--dx',Math.cos(a)*dist+'px');s.style.setProperty('--dy',Math.sin(a)*dist+'px');tilesLayer.appendChild(s);setTimeout(()=>s.remove(),700)}}
-function performNeighborMerges(pairs){SFX.cascade();haptic('medium');for(const[t1,t2]of pairs){t2.el.classList.add('consumed-neighbor');setTimeout(()=>{t2.el.remove();tiles.delete(t2.id)},300);const nv=t1.value*2;t1.value=nv;t1.el.textContent=nv;t1.el.dataset.value=nv;t1.el.classList.remove('neighbor-merged','big-flash');void t1.el.offsetWidth;t1.el.classList.add('neighbor-merged');if(nv>=256){t1.el.classList.add('big-flash');setTimeout(()=>t1.el.classList.remove('big-flash'),600)}spawnSparks(t1.q,t1.r,10);score+=nv}document.getElementById('score').textContent=score;saveBestLocal();scheduleAutoSave();for(const t of tiles.values())if(t.value>=2048&&!won){won=true;SFX.win();haptic('success');showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true);saveSession()}}
+function spawnSparks(q,r,n=10){const p=hexToPixel(q,r);for(let i=0;i<n;i++){const s=document.createElement('div');s.className='spark';const a=(i/n)*Math.PI*2+Math.random()*.5,dist=30+Math.random()*25;s.style.left=(cx+p.x)+'px';s.style.top=(cy+p.y)+'px';s.style.setProperty('--dx',Math.cos(a)*dist+'px');s.style.setProperty('--dy',Math.sin(a)*dist+'px');tilesLayer.appendChild(s);setTimeout(()=>s.remove(),750)}}
+function performNeighborMerges(pairs){SFX.cascade();haptic('medium');for(const[t1,t2]of pairs){t2.el.classList.add('consumed-neighbor');setTimeout(()=>{t2.el.remove();tiles.delete(t2.id)},350);const nv=t1.value*2;t1.value=nv;t1.el.textContent=nv;t1.el.dataset.value=nv;t1.el.classList.remove('neighbor-merged','big-flash');void t1.el.offsetWidth;t1.el.classList.add('neighbor-merged');if(nv>=256){t1.el.classList.add('big-flash');setTimeout(()=>t1.el.classList.remove('big-flash'),600)}spawnSparks(t1.q,t1.r,12);score+=nv}document.getElementById('score').textContent=score;saveBestLocal();scheduleAutoSave();for(const t of tiles.values())if(t.value>=2048&&!won){won=true;SFX.win();haptic('success');showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true);saveSession()}}
 function cascadeNeighborMerges(){const pairs=findNeighborPairs();if(pairs.length===0){addRandomTile();finishTurn();return}performNeighborMerges(pairs);setTimeout(cascadeNeighborMerges,300)}
 
-// === ПОДЕЛИТЬСЯ ===
 const APP_LINK='https://t.me/hex2048_bot/play';
 function shareResult(){
   const cc=3*CURRENT_RADIUS*CURRENT_RADIUS+3*CURRENT_RADIUS+1;
-  const text='💎 Я набрал '+score+' очков в Hex2048 Gems (поле '+CURRENT_RADIUS+', '+cc+' ячеек)!\nСможешь побить мой рекорд?\n\n🕹 Играть: '+APP_LINK;
+  const text='💎 Я набрал '+score+' очков в Hex2048 Diamonds (поле '+CURRENT_RADIUS+', '+cc+' ячеек)!\nСможешь побить мой рекорд?\n\n🕹 Играть: '+APP_LINK;
   saveShareEvent(null);
   if(isTWA&&tg){try{tg.switchInlineQuery(text,['users','groups','channels']);haptic('success');return}catch(e){}}
   if(isTWA&&tg){try{tg.openTelegramLink('https://t.me/share/url?url='+encodeURIComponent(APP_LINK)+'&text='+encodeURIComponent(text));haptic('success');return}catch(e){}}
@@ -442,7 +447,6 @@ function fallbackPrompt(text){try{prompt('Скопируйте:',text)}catch(e){
   var ovl=document.getElementById('overlayShareBtn');if(ovl){ovl.onclick=function(e){e.preventDefault();e.stopPropagation();shareResult()};ovl.ontouchstart=function(e){e.preventDefault();shareResult()}}
 })();
 
-// === ОВЕРЛЕЙ GAME OVER ===
 async function showOverlay(title,msg,keep){
   document.getElementById('overlayTitle').textContent=title;document.getElementById('overlayMsg').textContent=msg;
   const form=document.getElementById('nickname-form'),input=document.getElementById('nickname-input'),btn=document.getElementById('overlayBtn');
@@ -458,7 +462,6 @@ async function showOverlay(title,msg,keep){
 document.getElementById('submit-nick').addEventListener('click',async()=>{const n=document.getElementById('nickname-input').value.trim();if(n){await saveScoreWithNick(n,score,CURRENT_RADIUS);saveLBLocal(n,score);submittedNick=true;document.getElementById('nickname-form').style.display='none';const rows=await loadLeaderboard(CURRENT_RADIUS);if(rows)renderLBRows(rows,document.getElementById('gameOverLb'));haptic('success')}});
 document.getElementById('nickname-input').addEventListener('keypress',e=>{if(e.key==='Enter')document.getElementById('submit-nick').click()});
 
-// === ОВЕРЛЕЙ ЧЕМПИОНОВ ===
 let trophyTab='current';
 const trophyOverlay=document.getElementById('trophyOverlay');
 const trophyLb=document.getElementById('trophyLb');
@@ -478,7 +481,6 @@ tabAll.onclick=async()=>{trophyTab='all';tabAll.classList.add('active');tabCurre
 document.getElementById('trophyBtn').onclick=openTrophy;
 document.getElementById('trophyCloseBtn').onclick=closeTrophy;
 
-// === УПРАВЛЕНИЕ ===
 const pressed=new Set();let lastDir=-1;
 document.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();if(e.repeat)return;pressed.add(e.key);const dir=getDir();if(dir!==-1&&dir!==lastDir){lastDir=dir;move(dir)}}});
 document.addEventListener('keyup',e=>{if(pressed.has(e.key)){pressed.delete(e.key);lastDir=-1}});
@@ -490,7 +492,6 @@ document.querySelectorAll('.mobile-controls button').forEach(btn=>{btn.addEventL
 radiusSelect.addEventListener('change',e=>{switchRadius(parseInt(e.target.value))});
 document.getElementById('newGameBtn').addEventListener('click',newGame);
 
-// === ЗАПУСК ===
 initTheme();initSupabase();
 let started=false;
 for(const r of [2,3,4,5,6]){if(localStorage.getItem(sessionKey(r))){radiusSelect.value=String(r);if(loadSessionForRadius(r)){started=true;break}}}
