@@ -220,7 +220,17 @@ function updateContainerSize(){
 }
 function positionEl(el,q,r){const p=hexToPixel(q,r);el.style.left=(cx+p.x-HALF_W)+'px';el.style.top=(cy+p.y-HALF_H)+'px'}
 async function loadBest(){const lb=parseInt(localStorage.getItem('hex2048best_'+CURRENT_RADIUS)||'0');const gb=await getPersonalBest();best=Math.max(lb,gb||0);document.getElementById('best').textContent=best}
-function saveBestLocal(){if(score>best){best=score;localStorage.setItem('hex2048best_'+CURRENT_RADIUS,best);document.getElementById('best').textContent=best}}
+function saveBestLocal(){
+    if(score > best){
+        best = score;
+        localStorage.setItem('hex2048best_'+CURRENT_RADIUS, best);
+        document.getElementById('best').textContent = best;
+        // Сохраняем текущее состояние плиток как "рекордное поле"
+        const td = [];
+        for(const t of tiles.values()) td.push({q:t.q, r:t.r, value:t.value});
+        localStorage.setItem('hex2048_bestfield_'+CURRENT_RADIUS, JSON.stringify(td));
+    }
+}
 const LB_LOCAL_KEY='hex2048leaderboard';
 function loadLBLocal(){try{return JSON.parse(localStorage.getItem(LB_LOCAL_KEY)||'[]')}catch(e){return[]}}
 function saveLBLocal(nick,sc){const lb=loadLBLocal();lb.push({nick:nick.trim(),score:sc,radius:CURRENT_RADIUS,date:new Date().toLocaleDateString()});lb.sort((a,b)=>b.score-a.score);localStorage.setItem(LB_LOCAL_KEY,JSON.stringify(lb.slice(0,10)))}
@@ -232,28 +242,51 @@ function loadSessionForRadius(r){try{const raw=localStorage.getItem(sessionKey(r
 function clearSessionForRadius(r){localStorage.removeItem(sessionKey(r))}
 function newGame(){clearSessionForRadius(CURRENT_RADIUS);clearLayers();nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;lastSavedScore=0;document.getElementById('score').textContent='0';document.getElementById('overlay').classList.remove('active');document.getElementById('nickname-form').style.display='none';buildGrid(parseInt(radiusSelect.value));for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();saveSession();haptic('light')}
 async function continueFromRecord(){
-  await loadBest();
-  if(best===0){
-    alert('У вас пока нет рекорда для этого поля. Сыграйте хотя бы одну игру!');
-    haptic('error');
-    return;
-  }
-  clearSessionForRadius(CURRENT_RADIUS);
-  clearLayers();
-  nextTileId=1;
-  score=best;
-  gameOver=false;
-  won=false;
-  submittedNick=false;
-  isAnimating=false;
-  lastSavedScore=score;
-  document.getElementById('score').textContent=score;
-  document.getElementById('overlay').classList.remove('active');
-  document.getElementById('nickname-form').style.display='none';
-  buildGrid(parseInt(radiusSelect.value));
-  for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();
-  saveSession();
-  haptic('success');
+    await loadBest();
+    if(best === 0){
+        alert('У вас пока нет рекорда для этого поля. Сыграйте хотя бы одну игру!');
+        haptic('error');
+        return;
+    }
+    
+    // Загружаем сохраненные плитки рекорда
+    const bestFieldRaw = localStorage.getItem('hex2048_bestfield_'+CURRENT_RADIUS);
+    
+    clearSessionForRadius(CURRENT_RADIUS);
+    clearLayers();
+    
+    nextTileId = 1;
+    score = best; // Устанавливаем счет равным рекорду
+    gameOver = false;
+    won = false;
+    submittedNick = false;
+    isAnimating = false;
+    lastSavedScore = score;
+    
+    document.getElementById('score').textContent = score;
+    document.getElementById('overlay').classList.remove('active');
+    document.getElementById('nickname-form').style.display = 'none';
+    
+    buildGrid(parseInt(radiusSelect.value));
+    
+    // Если есть сохраненное поле рекорда, загружаем его
+    if(bestFieldRaw) {
+        try {
+            const bestTiles = JSON.parse(bestFieldRaw);
+            for(const td of bestTiles){
+                addTile(td.q, td.r, td.value, true);
+            }
+        } catch(e) {
+            // Если ошибка чтения, просто добавляем случайные плитки
+            for(let i=0; i<Math.max(2, Math.floor(CURRENT_RADIUS*.6)); i++) addRandomTile();
+        }
+    } else {
+        // Если нет сохраненного поля, добавляем начальные плитки
+        for(let i=0; i<Math.max(2, Math.floor(CURRENT_RADIUS*.6)); i++) addRandomTile();
+    }
+    
+    saveSession();
+    haptic('success');
 }
 function switchRadius(newR){if(tiles.size>0)saveSession();const restored=loadSessionForRadius(newR);if(!restored){clearLayers();nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;lastSavedScore=0;document.getElementById('score').textContent='0';document.getElementById('overlay').classList.remove('active');document.getElementById('nickname-form').style.display='none';buildGrid(newR);for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();saveSession()}haptic('light')}
 function renderEmptyGrid(){gridLayer.innerHTML='';const th=THEMES[currentTheme];for(const c of GRID){const el=document.createElement('div');el.className='hex empty';el.style.background=th.empty;positionEl(el,c.q,c.r);gridLayer.appendChild(el)}}
