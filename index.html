@@ -241,6 +241,7 @@ function clearLayers(){gridLayer.innerHTML='';tilesLayer.innerHTML='';tiles.clea
 function loadSessionForRadius(r){try{const raw=localStorage.getItem(sessionKey(r));if(!raw)return false;const s=JSON.parse(raw);if(!s.tiles||!Array.isArray(s.tiles)||s.tiles.length===0)return false;clearLayers();score=s.score||0;gameOver=!!s.gameOver;won=!!s.won;submittedNick=!!s.submittedNick;nextTileId=s.nextTileId||100;lastSavedScore=score;document.getElementById('score').textContent=score;buildGrid(r);for(const td of s.tiles){addTile(td.q,td.r,td.value,true)}loadBest();document.getElementById('overlay').classList.remove('active');if(gameOver&&!won)setTimeout(()=>showOverlay('Игра окончена','Финальный счёт: '+score,false),300);else if(won)setTimeout(()=>showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true),300);return true}catch(e){return false}}
 function clearSessionForRadius(r){localStorage.removeItem(sessionKey(r))}
 function newGame(){clearSessionForRadius(CURRENT_RADIUS);clearLayers();nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;lastSavedScore=0;document.getElementById('score').textContent='0';document.getElementById('overlay').classList.remove('active');document.getElementById('nickname-form').style.display='none';buildGrid(parseInt(radiusSelect.value));for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();saveSession();haptic('light')}
+
 async function continueFromRecord(){
     await loadBest();
     if(best === 0){
@@ -252,8 +253,9 @@ async function continueFromRecord(){
     // Загружаем сохраненные плитки рекорда
     const bestFieldRaw = localStorage.getItem('hex2048_bestfield_'+CURRENT_RADIUS);
     
-    clearSessionForRadius(CURRENT_RADIUS);
-    clearLayers();
+    // Очищаем только тайлы, но сохраняем структуру сетки если радиус тот же
+    tilesLayer.innerHTML = '';
+    tiles.clear();
     
     nextTileId = 1;
     score = best; // Устанавливаем счет равным рекорду
@@ -267,7 +269,12 @@ async function continueFromRecord(){
     document.getElementById('overlay').classList.remove('active');
     document.getElementById('nickname-form').style.display = 'none';
     
-    buildGrid(parseInt(radiusSelect.value));
+    // Если радиус изменился или сетка пуста, перестраиваем
+    if(GRID.length === 0 || CURRENT_RADIUS !== parseInt(radiusSelect.value)){
+        buildGrid(parseInt(radiusSelect.value));
+    } else {
+        renderEmptyGrid(); // Перерисовываем пустые ячейки
+    }
     
     // Если есть сохраненное поле рекорда, загружаем его
     if(bestFieldRaw) {
@@ -277,7 +284,7 @@ async function continueFromRecord(){
                 addTile(td.q, td.r, td.value, true);
             }
         } catch(e) {
-            // Если ошибка чтения, просто добавляем случайные плитки
+            console.error("Ошибка загрузки плиток рекорда", e);
             for(let i=0; i<Math.max(2, Math.floor(CURRENT_RADIUS*.6)); i++) addRandomTile();
         }
     } else {
@@ -288,6 +295,7 @@ async function continueFromRecord(){
     saveSession();
     haptic('success');
 }
+
 function switchRadius(newR){if(tiles.size>0)saveSession();const restored=loadSessionForRadius(newR);if(!restored){clearLayers();nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;lastSavedScore=0;document.getElementById('score').textContent='0';document.getElementById('overlay').classList.remove('active');document.getElementById('nickname-form').style.display='none';buildGrid(newR);for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();saveSession()}haptic('light')}
 function renderEmptyGrid(){gridLayer.innerHTML='';const th=THEMES[currentTheme];for(const c of GRID){const el=document.createElement('div');el.className='hex empty';el.style.background=th.empty;positionEl(el,c.q,c.r);gridLayer.appendChild(el)}}
 function emptyCells(){const occ=new Set();for(const t of tiles.values())occ.add(key(t.q,t.r));return GRID.filter(c=>!occ.has(key(c.q,c.r)))}
