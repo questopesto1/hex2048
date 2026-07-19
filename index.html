@@ -231,7 +231,30 @@ function clearLayers(){gridLayer.innerHTML='';tilesLayer.innerHTML='';tiles.clea
 function loadSessionForRadius(r){try{const raw=localStorage.getItem(sessionKey(r));if(!raw)return false;const s=JSON.parse(raw);if(!s.tiles||!Array.isArray(s.tiles)||s.tiles.length===0)return false;clearLayers();score=s.score||0;gameOver=!!s.gameOver;won=!!s.won;submittedNick=!!s.submittedNick;nextTileId=s.nextTileId||100;lastSavedScore=score;document.getElementById('score').textContent=score;buildGrid(r);for(const td of s.tiles){addTile(td.q,td.r,td.value,true)}loadBest();document.getElementById('overlay').classList.remove('active');if(gameOver&&!won)setTimeout(()=>showOverlay('Игра окончена','Финальный счёт: '+score,false),300);else if(won)setTimeout(()=>showOverlay('🎉 Победа!','Счёт: '+score+'. Продолжайте!',true),300);return true}catch(e){return false}}
 function clearSessionForRadius(r){localStorage.removeItem(sessionKey(r))}
 function newGame(){clearSessionForRadius(CURRENT_RADIUS);clearLayers();nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;lastSavedScore=0;document.getElementById('score').textContent='0';document.getElementById('overlay').classList.remove('active');document.getElementById('nickname-form').style.display='none';buildGrid(parseInt(radiusSelect.value));for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();saveSession();haptic('light')}
-function continueFromRecord(){const restored=loadSessionForRadius(CURRENT_RADIUS);if(restored){haptic('light')}else{alert('Нет сохраненной игры для этого поля. Начните новую игру и сыграйте хотя бы один ход.');haptic('error')}}
+async function continueFromRecord(){
+  await loadBest();
+  if(best===0){
+    alert('У вас пока нет рекорда для этого поля. Сыграйте хотя бы одну игру!');
+    haptic('error');
+    return;
+  }
+  clearSessionForRadius(CURRENT_RADIUS);
+  clearLayers();
+  nextTileId=1;
+  score=best;
+  gameOver=false;
+  won=false;
+  submittedNick=false;
+  isAnimating=false;
+  lastSavedScore=score;
+  document.getElementById('score').textContent=score;
+  document.getElementById('overlay').classList.remove('active');
+  document.getElementById('nickname-form').style.display='none';
+  buildGrid(parseInt(radiusSelect.value));
+  for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();
+  saveSession();
+  haptic('success');
+}
 function switchRadius(newR){if(tiles.size>0)saveSession();const restored=loadSessionForRadius(newR);if(!restored){clearLayers();nextTileId=1;score=0;gameOver=false;won=false;submittedNick=false;isAnimating=false;lastSavedScore=0;document.getElementById('score').textContent='0';document.getElementById('overlay').classList.remove('active');document.getElementById('nickname-form').style.display='none';buildGrid(newR);for(let i=0;i<Math.max(2,Math.floor(CURRENT_RADIUS*.6));i++)addRandomTile();saveSession()}haptic('light')}
 function renderEmptyGrid(){gridLayer.innerHTML='';const th=THEMES[currentTheme];for(const c of GRID){const el=document.createElement('div');el.className='hex empty';el.style.background=th.empty;positionEl(el,c.q,c.r);gridLayer.appendChild(el)}}
 function emptyCells(){const occ=new Set();for(const t of tiles.values())occ.add(key(t.q,t.r));return GRID.filter(c=>!occ.has(key(c.q,c.r)))}
