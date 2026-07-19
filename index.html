@@ -91,6 +91,7 @@ h1{font-size:1.8rem;margin:.2em 0;flex-shrink:0;font-weight:800}
   <div id="nickname-form"><input type="text" id="nickname-input" placeholder="Ваш ник" maxlength="12"><button class="btn" id="submit-nick" style="padding:.35em .7em;">✓</button></div>
   <div class="lb-container" id="gameOverLb"></div>
   <button class="btn btn-share" id="overlayShareBtn">📤 Поделиться результатом</button>
+  <button class="btn" id="continueBtn" style="background:linear-gradient(135deg,#00b894,#00cec9);display:none;">🔄 Продолжить от рекорда</button>
   <button class="btn" id="overlayBtn">Заново</button>
 </div>
 <div class="overlay" id="trophyOverlay">
@@ -105,7 +106,6 @@ h1{font-size:1.8rem;margin:.2em 0;flex-shrink:0;font-weight:800}
 <script>
 window.onerror=(msg,url,line,col,err)=>{console.error('GAME ERROR:',msg,'at',line+':'+col,err);document.title='ERR: '+msg};
 
-// НЕПРОЗРАЧНЫЕ цвета для чётких контуров
 const THEMES={
   dark:{
     bg:'#0e0e1c',panel:'#1a1a30',border:'#3a3a60',
@@ -128,7 +128,6 @@ let currentTheme='dark';
 
 function applyTheme(t){
   currentTheme=t;const th=THEMES[t];
-  // Фон меняем на #app-root, а не на body — это надёжно работает в Safari
   const root=document.getElementById('app-root');
   root.style.background=th.bg;root.style.color=th.text;
   document.body.style.background=th.bg;
@@ -138,6 +137,7 @@ function applyTheme(t){
   const sel=document.getElementById('radiusSelect');sel.style.background=th.panel;sel.style.borderColor=th.border;sel.style.color=th.text;
   ['newGameBtn','overlayBtn','submit-nick','trophyCloseBtn'].forEach(id=>{document.getElementById(id).style.background=th.btnBg});
   document.getElementById('overlayShareBtn').style.background='linear-gradient(135deg,#6c5ce7,#a29bfe)';
+  document.getElementById('continueBtn').style.background='linear-gradient(135deg,#00b894,#00cec9)';
   ['shareHeaderBtn','trophyBtn','soundToggle','themeToggle'].forEach(id=>{const el=document.getElementById(id);el.style.background=th.panel;el.style.borderColor=th.border;el.style.color=th.accent});
   const mag=document.getElementById('magnetToggle');
   if(mag.classList.contains('active')){mag.style.background=th.accent;mag.style.color='#fff';mag.style.borderColor=th.accent}else{mag.style.background=th.panel;mag.style.color=th.accent;mag.style.borderColor=th.border}
@@ -250,7 +250,7 @@ function shareResult(){const cc=3*CURRENT_RADIUS*CURRENT_RADIUS+3*CURRENT_RADIUS
 function fallbackPrompt(text){try{prompt('Скопируйте:',text)}catch(e){alert(text)}}
 (function(){const hdr=document.getElementById('shareHeaderBtn');if(hdr){hdr.onclick=function(e){e.preventDefault();e.stopPropagation();shareResult()};hdr.ontouchstart=function(e){e.preventDefault();shareResult()}}const ovl=document.getElementById('overlayShareBtn');if(ovl){ovl.onclick=function(e){e.preventDefault();e.stopPropagation();shareResult()};ovl.ontouchstart=function(e){e.preventDefault();shareResult()}}})();
 
-async function showOverlay(title,msg,keep){document.getElementById('overlayTitle').textContent=title;document.getElementById('overlayMsg').textContent=msg;const form=document.getElementById('nickname-form'),btn=document.getElementById('overlayBtn');const shareBtn=document.getElementById('overlayShareBtn');const lbEl=document.getElementById('gameOverLb');lbEl.innerHTML='<div class="lb-loading" style="color:'+THEMES[currentTheme].textSec+'">Загрузка...</div>';const rows=await loadLeaderboard(CURRENT_RADIUS);if(rows)renderLBRows(rows,lbEl);else renderLBRows(loadLBLocal(),lbEl);if(keep){form.style.display='none';shareBtn.style.display='';btn.textContent='Продолжить';btn.onclick=()=>document.getElementById('overlay').classList.remove('active')}else{shareBtn.style.display='';btn.textContent='Заново';btn.onclick=newGame;if(score>0){form.style.display='flex';document.getElementById('nickname-input').value='';document.getElementById('nickname-input').placeholder=getDefaultNick()+' (или свой)'}else form.style.display='none'}document.getElementById('overlay').classList.add('active')}
+async function showOverlay(title,msg,keep){document.getElementById('overlayTitle').textContent=title;document.getElementById('overlayMsg').textContent=msg;const form=document.getElementById('nickname-form'),btn=document.getElementById('overlayBtn');const shareBtn=document.getElementById('overlayShareBtn');const continueBtn=document.getElementById('continueBtn');const lbEl=document.getElementById('gameOverLb');lbEl.innerHTML='<div class="lb-loading" style="color:'+THEMES[currentTheme].textSec+'">Загрузка...</div>';const rows=await loadLeaderboard(CURRENT_RADIUS);if(rows)renderLBRows(rows,lbEl);else renderLBRows(loadLBLocal(),lbEl);if(keep){form.style.display='none';shareBtn.style.display='';continueBtn.style.display='none';btn.textContent='Продолжить';btn.onclick=()=>document.getElementById('overlay').classList.remove('active')}else{shareBtn.style.display='';btn.textContent='Заново';btn.onclick=newGame;const hasSession=localStorage.getItem(sessionKey(CURRENT_RADIUS));if(hasSession){continueBtn.style.display='';continueBtn.onclick=()=>{document.getElementById('overlay').classList.remove('active');loadSessionForRadius(CURRENT_RADIUS);haptic('light')}}else{continueBtn.style.display='none'}if(score>0){form.style.display='flex';document.getElementById('nickname-input').value='';document.getElementById('nickname-input').placeholder=getDefaultNick()+' (или свой)'}else form.style.display='none'}document.getElementById('overlay').classList.add('active')}
 document.getElementById('submit-nick').addEventListener('click',async()=>{const n=document.getElementById('nickname-input').value.trim();if(n){await saveScoreWithNick(n,score,CURRENT_RADIUS);saveLBLocal(n,score);submittedNick=true;document.getElementById('nickname-form').style.display='none';const rows=await loadLeaderboard(CURRENT_RADIUS);if(rows)renderLBRows(rows,document.getElementById('gameOverLb'));haptic('success')}});
 document.getElementById('nickname-input').addEventListener('keypress',e=>{if(e.key==='Enter')document.getElementById('submit-nick').click()});
 
