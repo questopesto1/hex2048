@@ -253,9 +253,8 @@ async function continueFromRecord(){
     // Загружаем сохраненные плитки рекорда
     const bestFieldRaw = localStorage.getItem('hex2048_bestfield_'+CURRENT_RADIUS);
     
-    // Очищаем только тайлы, но сохраняем структуру сетки если радиус тот же
-    tilesLayer.innerHTML = '';
-    tiles.clear();
+    // Полная очистка перед загрузкой
+    clearLayers();
     
     nextTileId = 1;
     score = best; // Устанавливаем счет равным рекорду
@@ -269,17 +268,14 @@ async function continueFromRecord(){
     document.getElementById('overlay').classList.remove('active');
     document.getElementById('nickname-form').style.display = 'none';
     
-    // Если радиус изменился или сетка пуста, перестраиваем
-    if(GRID.length === 0 || CURRENT_RADIUS !== parseInt(radiusSelect.value)){
-        buildGrid(parseInt(radiusSelect.value));
-    } else {
-        renderEmptyGrid(); // Перерисовываем пустые ячейки
-    }
+    // Строим сетку заново
+    buildGrid(parseInt(radiusSelect.value));
     
     // Если есть сохраненное поле рекорда, загружаем его
     if(bestFieldRaw) {
         try {
             const bestTiles = JSON.parse(bestFieldRaw);
+            console.log("Загрузка плиток рекорда:", bestTiles.length);
             for(const td of bestTiles){
                 addTile(td.q, td.r, td.value, true);
             }
